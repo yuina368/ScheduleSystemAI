@@ -86,7 +86,9 @@ Gemini Flash can be added later by replacing the planner implementation behind t
 ### Vercel Frontend
 
 - Project root: `frontend`
+- Framework Preset: `Next.js`
 - Build command: `npm run build`
+- Install command: `npm install`
 - Output: Next.js default
 - Environment variables:
   - `NEXT_PUBLIC_API_BASE_URL=https://your-railway-api.example.com`
