@@ -106,21 +106,23 @@ Gemini Flash can be added later by replacing the planner implementation behind t
 
 For production hardening, switch `CREATE_TABLES_ON_STARTUP=false` and run Alembic migrations during deploy.
 
-### Vercel Backend Alternative
+### Vercel Backend
 
-If Railway is unavailable, the FastAPI backend can also run on Vercel.
+If Railway is unavailable, the FastAPI backend can also run on Vercel. Vercel hosts the FastAPI serverless function, but it does not replace PostgreSQL for this app. Create a free PostgreSQL database with Neon, Supabase, or another hosted provider first, then use that connection string as `DATABASE_URL`.
 
 - Create a second Vercel project from the same repository.
 - Set Root Directory to `backend`.
 - Set Framework Preset to `Other`.
 - Keep Build Command empty unless Vercel asks for one.
 - Add environment variables:
-  - `DATABASE_URL` from Neon or another hosted PostgreSQL provider
+  - `DATABASE_URL` from Neon, Supabase, or another hosted PostgreSQL provider
   - `SECRET_KEY` with a long random value
   - `BACKEND_CORS_ORIGINS=https://your-frontend.vercel.app`
   - `CREATE_TABLES_ON_STARTUP=true`
 
 The backend root URL should return a JSON status response. `/health` should return `{"status":"ok"}`.
+
+After the backend deploys, copy its Vercel URL into the frontend project as `NEXT_PUBLIC_API_BASE_URL`, then redeploy the frontend. Also update the backend project's `BACKEND_CORS_ORIGINS` to the exact frontend URL.
 
 The Vercel backend entrypoint is `backend/server.py`, and `backend/pyproject.toml` points Vercel to `server:app`.
 
@@ -131,6 +133,6 @@ Do not deploy the repository root as a single Vercel project for this MVP. Use t
 
 If Vercel shows "No FastAPI entrypoint found", set the backend project's Root Directory to `backend`. The backend-specific `pyproject.toml` lives in that folder.
 
-The repository root also includes a thin `main.py` and `requirements.txt` fallback for Vercel deployments that are still pointed at `./`. Prefer `Root Directory: backend` for the backend project, but the fallback prevents the default FastAPI entrypoint detector from failing.
+The repository root also includes thin `server.py` / `main.py` entrypoints and `requirements.txt` as a fallback for Vercel deployments that are still pointed at `./`. Prefer `Root Directory: backend` for the backend project, but the fallback prevents the default FastAPI entrypoint detector from failing.
 
 If Vercel shows `500: FUNCTION_INVOCATION_FAILED`, open the backend deployment logs first. The most common cause is a missing or invalid `DATABASE_URL`. `/health` returns database status when the app boots far enough to respond.
