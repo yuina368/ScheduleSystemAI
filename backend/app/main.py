@@ -1,5 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from sqlalchemy import text
+from sqlalchemy.exc import SQLAlchemyError
 
 from app import models  # noqa: F401
 from app.core.config import get_settings
@@ -31,20 +33,40 @@ app.include_router(study_logs.router)
 
 @app.on_event("startup")
 def on_startup() -> None:
+    app.state.db_startup_error = None
     if app_settings.create_tables_on_startup:
-        Base.metadata.create_all(bind=engine)
+        try:
+            Base.metadata.create_all(bind=engine)
+        except SQLAlchemyError as exc:
+            app.state.db_startup_error = str(exc)
+
+
+def database_status() -> dict[str, str]:
+    startup_error = getattr(app.state, "db_startup_error", None)
+    if startup_error:
+        return {"status": "error", "detail": startup_error}
+
+    try:
+        with engine.connect() as connection:
+            connection.execute(text("select 1"))
+        return {"status": "ok"}
+    except SQLAlchemyError as exc:
+        return {"status": "error", "detail": str(exc)}
 
 
 @app.get("/health")
-def health() -> dict[str, str]:
-    return {"status": "ok"}
+def health() -> dict[str, object]:
+    db = database_status()
+    return {"status": "ok" if db["status"] == "ok" else "degraded", "database": db}
 
 
 @app.get("/")
 def root() -> dict[str, object]:
+    db = database_status()
     return {
         "name": "ScheduleSystemAI API",
-        "status": "ok",
+        "status": "ok" if db["status"] == "ok" else "degraded",
         "docs": "/docs",
         "health": "/health",
+        "database": db,
     }
