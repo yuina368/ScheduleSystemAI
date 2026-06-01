@@ -122,6 +122,8 @@ If Railway is unavailable, the FastAPI backend can also run on Vercel.
 
 The backend root URL should return a JSON status response. `/health` should return `{"status":"ok"}`.
 
+The Vercel backend uses `backend/api/index.py` with a rewrite from `/(.*)` to `/api/index`, following Vercel's Python/FastAPI function layout.
+
 Do not deploy the repository root as a single Vercel project for this MVP. Use two Vercel projects:
 
 1. `frontend` as the Next.js app
