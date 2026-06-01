@@ -15,7 +15,7 @@ class Settings(BaseSettings):
 
     @property
     def cors_origins(self) -> list[str]:
-        return [origin.strip() for origin in self.backend_cors_origins.split(",") if origin.strip()]
+        return [origin.strip().rstrip("/") for origin in self.backend_cors_origins.split(",") if origin.strip()]
 
     @property
     def sqlalchemy_database_uri(self) -> str:
