@@ -122,14 +122,14 @@ If Railway is unavailable, the FastAPI backend can also run on Vercel.
 
 The backend root URL should return a JSON status response. `/health` should return `{"status":"ok"}`.
 
-The Vercel backend uses `backend/api/index.py` with a rewrite from `/(.*)` to `/api/index`, following Vercel's Python/FastAPI function layout.
+The Vercel backend entrypoint is `backend/server.py`, and `backend/pyproject.toml` points Vercel to `server:app`.
 
 Do not deploy the repository root as a single Vercel project for this MVP. Use two Vercel projects:
 
 1. `frontend` as the Next.js app
 2. `backend` as the FastAPI API
 
-If Vercel shows "No FastAPI entrypoint found" while listing `backend/app/main.py` or `backend/index.py`, set the backend project's Root Directory to `backend`. The backend-specific `pyproject.toml` lives in that folder.
+If Vercel shows "No FastAPI entrypoint found", set the backend project's Root Directory to `backend`. The backend-specific `pyproject.toml` lives in that folder.
 
 The repository root also includes a thin `main.py` and `requirements.txt` fallback for Vercel deployments that are still pointed at `./`. Prefer `Root Directory: backend` for the backend project, but the fallback prevents the default FastAPI entrypoint detector from failing.
 
