@@ -124,3 +124,5 @@ Do not deploy the repository root as a single Vercel project for this MVP. Use t
 
 1. `frontend` as the Next.js app
 2. `backend` as the FastAPI API
+
+If Vercel shows "No FastAPI entrypoint found" while listing `backend/app/main.py` or `backend/index.py`, the project is probably using the repository root. Either set Root Directory to `backend`, or keep the repository root and let `pyproject.toml` point Vercel to `backend.index:app`.
