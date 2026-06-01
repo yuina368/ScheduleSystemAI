@@ -127,6 +127,6 @@ Do not deploy the repository root as a single Vercel project for this MVP. Use t
 1. `frontend` as the Next.js app
 2. `backend` as the FastAPI API
 
-If Vercel shows "No FastAPI entrypoint found" while listing `backend/app/main.py` or `backend/index.py`, the project is probably using the repository root. Either set Root Directory to `backend`, or keep the repository root and let `pyproject.toml` point Vercel to `backend.index:app`.
+If Vercel shows "No FastAPI entrypoint found" while listing `backend/app/main.py` or `backend/index.py`, set the backend project's Root Directory to `backend`. The backend-specific `pyproject.toml` lives in that folder.
 
 If Vercel shows `500: FUNCTION_INVOCATION_FAILED`, open the backend deployment logs first. The most common cause is a missing or invalid `DATABASE_URL`. `/health` returns database status when the app boots far enough to respond.

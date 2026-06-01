@@ -16,4 +16,4 @@ dependencies = [
 ]
 
 [project.scripts]
-app = "backend.index:app"
+app = "index:app"
