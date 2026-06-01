@@ -38,3 +38,13 @@ def on_startup() -> None:
 @app.get("/health")
 def health() -> dict[str, str]:
     return {"status": "ok"}
+
+
+@app.get("/")
+def root() -> dict[str, object]:
+    return {
+        "name": "ScheduleSystemAI API",
+        "status": "ok",
+        "docs": "/docs",
+        "health": "/health",
+    }

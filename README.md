@@ -103,3 +103,24 @@ Gemini Flash can be added later by replacing the planner implementation behind t
 - Start command if not using Docker: `uvicorn app.main:app --host 0.0.0.0 --port $PORT`
 
 For production hardening, switch `CREATE_TABLES_ON_STARTUP=false` and run Alembic migrations during deploy.
+
+### Vercel Backend Alternative
+
+If Railway is unavailable, the FastAPI backend can also run on Vercel.
+
+- Create a second Vercel project from the same repository.
+- Set Root Directory to `backend`.
+- Set Framework Preset to `Other`.
+- Keep Build Command empty unless Vercel asks for one.
+- Add environment variables:
+  - `DATABASE_URL` from Neon or another hosted PostgreSQL provider
+  - `SECRET_KEY` with a long random value
+  - `BACKEND_CORS_ORIGINS=https://your-frontend.vercel.app`
+  - `CREATE_TABLES_ON_STARTUP=true`
+
+The backend root URL should return a JSON status response. `/health` should return `{"status":"ok"}`.
+
+Do not deploy the repository root as a single Vercel project for this MVP. Use two Vercel projects:
+
+1. `frontend` as the Next.js app
+2. `backend` as the FastAPI API
