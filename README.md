@@ -129,4 +129,6 @@ Do not deploy the repository root as a single Vercel project for this MVP. Use t
 
 If Vercel shows "No FastAPI entrypoint found" while listing `backend/app/main.py` or `backend/index.py`, set the backend project's Root Directory to `backend`. The backend-specific `pyproject.toml` lives in that folder.
 
+The repository root also includes a thin `main.py` and `requirements.txt` fallback for Vercel deployments that are still pointed at `./`. Prefer `Root Directory: backend` for the backend project, but the fallback prevents the default FastAPI entrypoint detector from failing.
+
 If Vercel shows `500: FUNCTION_INVOCATION_FAILED`, open the backend deployment logs first. The most common cause is a missing or invalid `DATABASE_URL`. `/health` returns database status when the app boots far enough to respond.
