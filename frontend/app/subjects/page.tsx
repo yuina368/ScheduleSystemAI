@@ -4,13 +4,13 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Plus, Save, Trash2 } from "lucide-react";
 import { NavShell } from "@/components/NavShell";
-import { apiFetch, formatHours, hoursToMinutes, progressPercent, remainingPercent, Subject } from "@/lib/api";
+import { apiFetch, formatHours, progressPercent, remainingPercent, Subject } from "@/lib/api";
 
 type Drafts = Record<number, string>;
 
 export default function SubjectsPage() {
   const [subjects, setSubjects] = useState<Subject[]>([]);
-  const [requiredMinutes, setRequiredMinutes] = useState<Drafts>({});
+  const [requiredHours, setRequiredHours] = useState<Drafts>({});
   const [savingId, setSavingId] = useState<number | null>(null);
   const [error, setError] = useState("");
 
@@ -18,16 +18,16 @@ export default function SubjectsPage() {
     try {
       const subjectList = await apiFetch<Subject[]>("/subjects");
       setSubjects(subjectList);
-      setRequiredMinutes(Object.fromEntries(subjectList.map((subject) => [subject.id, String(hoursToMinutes(subject.required_hours))])));
+      setRequiredHours(Object.fromEntries(subjectList.map((subject) => [subject.id, String(subject.required_hours)])));
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load subjects");
     }
   }
 
   async function saveRequiredHours(subject: Subject) {
-    const minutes = Number(requiredMinutes[subject.id] ?? hoursToMinutes(subject.required_hours));
-    if (!Number.isFinite(minutes) || minutes <= 0) {
-      setError("必要時間は1分以上で入力してください");
+    const hours = Number(requiredHours[subject.id] ?? subject.required_hours);
+    if (!Number.isFinite(hours) || hours <= 0) {
+      setError("必要時間は0より大きい時間で入力してください");
       return;
     }
 
@@ -36,7 +36,7 @@ export default function SubjectsPage() {
     try {
       await apiFetch<Subject>(`/subjects/${subject.id}`, {
         method: "PATCH",
-        body: { required_hours: minutes / 60 },
+        body: { required_hours: hours },
       });
       await load();
     } catch (err) {
@@ -92,16 +92,16 @@ export default function SubjectsPage() {
                 </p>
                 <div className="time-edit">
                   <div className="field">
-                    <label htmlFor={`required-${subject.id}`}>必要時間(分)</label>
+                    <label htmlFor={`required-${subject.id}`}>必要時間(時間)</label>
                     <input
                       id={`required-${subject.id}`}
                       type="number"
-                      min="1"
-                      max="600000"
-                      step="1"
-                      value={requiredMinutes[subject.id] ?? String(hoursToMinutes(subject.required_hours))}
+                      min="0.01"
+                      max="10000"
+                      step="0.25"
+                      value={requiredHours[subject.id] ?? String(subject.required_hours)}
                       onChange={(event) =>
-                        setRequiredMinutes((current) => ({
+                        setRequiredHours((current) => ({
                           ...current,
                           [subject.id]: event.target.value,
                         }))
