@@ -268,6 +268,13 @@ p {
   justify-content: space-between;
 }
 
+.time-edit {
+  align-items: end;
+  display: grid;
+  gap: 10px;
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
 .progress {
   background: var(--surface-muted);
   border-radius: 999px;
@@ -353,5 +360,9 @@ p {
   .topbar {
     align-items: flex-start;
     flex-direction: column;
+  }
+
+  .time-edit {
+    grid-template-columns: 1fr;
   }
 }

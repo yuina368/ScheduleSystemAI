@@ -129,7 +129,7 @@ export async function apiFetch<T>(path: string, options: ApiOptions = {}): Promi
 }
 
 export function formatHours(value: number): string {
-  const totalMinutes = Math.max(0, Math.round(value * 60));
+  const totalMinutes = hoursToMinutes(value);
   if (value > 0 && totalMinutes === 0) return "1分未満";
 
   const hours = Math.floor(totalMinutes / 60);
@@ -140,7 +140,17 @@ export function formatHours(value: number): string {
   return `${hours}時間${minutes}分`;
 }
 
+export function hoursToMinutes(value: number): number {
+  return Math.max(0, Math.round(value * 60));
+}
+
 export function progressPercent(subject: Subject): number {
   if (subject.required_hours <= 0) return 0;
   return Math.min(100, Math.round((subject.completed_hours / subject.required_hours) * 100));
+}
+
+export function remainingPercent(subject: Subject): number {
+  if (subject.required_hours <= 0) return 0;
+  const remainingHours = Math.max(subject.required_hours - subject.completed_hours, 0);
+  return Math.min(100, Math.round((remainingHours / subject.required_hours) * 100));
 }

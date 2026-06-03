@@ -5,7 +5,7 @@ import Link from "next/link";
 import { AlertTriangle, CheckCircle2, Plus } from "lucide-react";
 import { NavShell } from "@/components/NavShell";
 import { PomodoroTimer } from "@/components/PomodoroTimer";
-import { apiFetch, formatHours, PlanSummary, progressPercent, Subject } from "@/lib/api";
+import { apiFetch, formatHours, PlanSummary, progressPercent, remainingPercent, Subject } from "@/lib/api";
 
 export default function DashboardPage() {
   const [summary, setSummary] = useState<PlanSummary | null>(null);
@@ -104,6 +104,7 @@ export default function DashboardPage() {
               {subjects.length ? (
                 subjects.slice(0, 5).map((subject) => {
                   const percent = progressPercent(subject);
+                  const remaining = remainingPercent(subject);
                   return (
                     <div className="card stack" key={subject.id}>
                       <div className="row">
@@ -116,7 +117,7 @@ export default function DashboardPage() {
                         <span style={{ width: `${percent}%` }} />
                       </div>
                       <p>
-                        {formatHours(subject.completed_hours)} / {formatHours(subject.required_hours)}
+                        {formatHours(subject.completed_hours)} / {formatHours(subject.required_hours)} / 残り {remaining}%
                       </p>
                     </div>
                   );

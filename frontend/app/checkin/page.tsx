@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { NavShell } from "@/components/NavShell";
-import { apiFetch, formatHours, PlanSummary } from "@/lib/api";
+import { apiFetch, formatHours, hoursToMinutes, PlanSummary } from "@/lib/api";
 
 type Drafts = Record<number, string>;
 
@@ -15,7 +15,7 @@ export default function CheckinPage() {
   async function load() {
     const today = await apiFetch<PlanSummary>("/plans/today");
     setSummary(today);
-    setDrafts(Object.fromEntries(today.plans.map((plan) => [plan.subject_id, String(plan.planned_hours)])));
+    setDrafts(Object.fromEntries(today.plans.map((plan) => [plan.subject_id, String(hoursToMinutes(plan.planned_hours))])));
   }
 
   async function submit(subjectId: number, didStudy: boolean) {
@@ -26,7 +26,7 @@ export default function CheckinPage() {
         method: "POST",
         body: {
           subject_id: subjectId,
-          actual_hours: didStudy ? Number(drafts[subjectId] ?? 0) : 0,
+          actual_hours: didStudy ? Number(drafts[subjectId] ?? 0) / 60 : 0,
           did_study: didStudy,
         },
       });
@@ -63,13 +63,13 @@ export default function CheckinPage() {
                   <span className="badge ok">{plan.subject.deadline_date}</span>
                 </div>
                 <div className="field">
-                  <label htmlFor={`actual-${plan.subject_id}`}>実際にやった時間</label>
+                  <label htmlFor={`actual-${plan.subject_id}`}>実際にやった時間(分)</label>
                   <input
                     id={`actual-${plan.subject_id}`}
                     type="number"
                     min="0"
-                    max="24"
-                    step="0.25"
+                    max="1440"
+                    step="1"
                     value={drafts[plan.subject_id] ?? "0"}
                     onChange={(event) =>
                       setDrafts((current) => ({

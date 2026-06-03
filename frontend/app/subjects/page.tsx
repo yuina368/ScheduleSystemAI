@@ -2,19 +2,47 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Plus, Trash2 } from "lucide-react";
+import { Plus, Save, Trash2 } from "lucide-react";
 import { NavShell } from "@/components/NavShell";
-import { apiFetch, formatHours, progressPercent, Subject } from "@/lib/api";
+import { apiFetch, formatHours, hoursToMinutes, progressPercent, remainingPercent, Subject } from "@/lib/api";
+
+type Drafts = Record<number, string>;
 
 export default function SubjectsPage() {
   const [subjects, setSubjects] = useState<Subject[]>([]);
+  const [requiredMinutes, setRequiredMinutes] = useState<Drafts>({});
+  const [savingId, setSavingId] = useState<number | null>(null);
   const [error, setError] = useState("");
 
   async function load() {
     try {
-      setSubjects(await apiFetch<Subject[]>("/subjects"));
+      const subjectList = await apiFetch<Subject[]>("/subjects");
+      setSubjects(subjectList);
+      setRequiredMinutes(Object.fromEntries(subjectList.map((subject) => [subject.id, String(hoursToMinutes(subject.required_hours))])));
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load subjects");
+    }
+  }
+
+  async function saveRequiredHours(subject: Subject) {
+    const minutes = Number(requiredMinutes[subject.id] ?? hoursToMinutes(subject.required_hours));
+    if (!Number.isFinite(minutes) || minutes <= 0) {
+      setError("必要時間は1分以上で入力してください");
+      return;
+    }
+
+    setError("");
+    setSavingId(subject.id);
+    try {
+      await apiFetch<Subject>(`/subjects/${subject.id}`, {
+        method: "PATCH",
+        body: { required_hours: minutes / 60 },
+      });
+      await load();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to update subject");
+    } finally {
+      setSavingId(null);
     }
   }
 
@@ -44,6 +72,7 @@ export default function SubjectsPage() {
         <div className="grid grid-2">
           {subjects.map((subject) => {
             const percent = progressPercent(subject);
+            const remaining = remainingPercent(subject);
             return (
               <article className="card stack" key={subject.id}>
                 <div className="row">
@@ -59,8 +88,36 @@ export default function SubjectsPage() {
                   <span style={{ width: `${percent}%` }} />
                 </div>
                 <p>
-                  完了 {formatHours(subject.completed_hours)} / 必要 {formatHours(subject.required_hours)}
+                  完了 {formatHours(subject.completed_hours)} / 必要 {formatHours(subject.required_hours)} / 残り {remaining}%
                 </p>
+                <div className="time-edit">
+                  <div className="field">
+                    <label htmlFor={`required-${subject.id}`}>必要時間(分)</label>
+                    <input
+                      id={`required-${subject.id}`}
+                      type="number"
+                      min="1"
+                      max="600000"
+                      step="1"
+                      value={requiredMinutes[subject.id] ?? String(hoursToMinutes(subject.required_hours))}
+                      onChange={(event) =>
+                        setRequiredMinutes((current) => ({
+                          ...current,
+                          [subject.id]: event.target.value,
+                        }))
+                      }
+                    />
+                  </div>
+                  <button
+                    className="button secondary"
+                    disabled={savingId === subject.id}
+                    type="button"
+                    onClick={() => void saveRequiredHours(subject)}
+                  >
+                    <Save size={17} />
+                    {savingId === subject.id ? "保存中" : "保存"}
+                  </button>
+                </div>
                 <button className="ghost-button" type="button" onClick={() => void remove(subject.id)}>
                   <Trash2 size={17} />
                   削除
