@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { AlertTriangle, CheckCircle2, Plus } from "lucide-react";
 import { NavShell } from "@/components/NavShell";
+import { PomodoroTimer } from "@/components/PomodoroTimer";
 import { apiFetch, formatHours, PlanSummary, progressPercent, Subject } from "@/lib/api";
 
 export default function DashboardPage() {
@@ -90,6 +91,7 @@ export default function DashboardPage() {
           </div>
         </section>
         <aside className="stack">
+          <PomodoroTimer />
           <div className="panel stack">
             <div className="row">
               <h2>科目</h2>

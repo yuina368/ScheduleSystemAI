@@ -129,8 +129,15 @@ export async function apiFetch<T>(path: string, options: ApiOptions = {}): Promi
 }
 
 export function formatHours(value: number): string {
-  if (value > 0 && value < 0.01) return "<0.01h";
-  return `${Number(value.toFixed(2))}h`;
+  const totalMinutes = Math.max(0, Math.round(value * 60));
+  if (value > 0 && totalMinutes === 0) return "1分未満";
+
+  const hours = Math.floor(totalMinutes / 60);
+  const minutes = totalMinutes % 60;
+
+  if (hours === 0) return `${minutes}分`;
+  if (minutes === 0) return `${hours}時間`;
+  return `${hours}時間${minutes}分`;
 }
 
 export function progressPercent(subject: Subject): number {

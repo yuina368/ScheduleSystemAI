@@ -281,6 +281,35 @@ p {
   height: 100%;
 }
 
+.pomodoro {
+  gap: 14px;
+}
+
+.timer-display {
+  color: var(--text);
+  font-size: 44px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.timer-progress {
+  height: 12px;
+}
+
+.timer-controls {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.timer-controls .button,
+.timer-controls .ghost-button {
+  justify-content: center;
+  min-width: 0;
+  padding-inline: 10px;
+}
+
 .error {
   color: var(--danger);
   font-weight: 700;
