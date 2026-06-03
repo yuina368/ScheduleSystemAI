@@ -2,11 +2,16 @@
 
 import { Pause, Play, RotateCcw, SkipForward } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
+import { formatHours } from "@/lib/api";
 
 const STUDY_SECONDS = 15 * 60;
 const BREAK_SECONDS = 5 * 60;
 
 type PomodoroMode = "study" | "break";
+
+type Props = {
+  studyHours?: number;
+};
 
 function formatTimer(seconds: number): string {
   const minutes = Math.floor(seconds / 60);
@@ -14,12 +19,14 @@ function formatTimer(seconds: number): string {
   return `${String(minutes).padStart(2, "0")}:${String(remainingSeconds).padStart(2, "0")}`;
 }
 
-export function PomodoroTimer() {
+export function PomodoroTimer({ studyHours }: Props) {
   const [mode, setMode] = useState<PomodoroMode>("study");
   const [secondsLeft, setSecondsLeft] = useState(STUDY_SECONDS);
   const [running, setRunning] = useState(false);
   const totalSeconds = mode === "study" ? STUDY_SECONDS : BREAK_SECONDS;
   const progress = useMemo(() => ((totalSeconds - secondsLeft) / totalSeconds) * 100, [secondsLeft, totalSeconds]);
+  const studyMinutes = typeof studyHours === "number" ? Math.max(0, Math.round(studyHours * 60)) : null;
+  const sessionCount = studyMinutes === null ? null : Math.ceil(studyMinutes / 15);
 
   function switchMode(nextMode: PomodoroMode) {
     setMode(nextMode);
@@ -66,6 +73,17 @@ export function PomodoroTimer() {
       </div>
       <div className="timer-display" aria-live="polite">
         {formatTimer(secondsLeft)}
+      </div>
+      <div className="timer-target">
+        {studyMinutes === null ? (
+          <p>1日の勉強時間を読み込むと、必要な15分タイマーの回数を表示します。</p>
+        ) : (
+          <>
+            <span className="muted">1日の勉強時間 {formatHours(studyHours ?? 0)}</span>
+            <strong>{sessionCount}回</strong>
+            <p>15分タイマーを{sessionCount}回回すと達成できます。</p>
+          </>
+        )}
       </div>
       <div className="progress timer-progress" aria-hidden="true">
         <span style={{ width: `${progress}%` }} />

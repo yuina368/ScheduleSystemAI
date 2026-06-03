@@ -91,7 +91,7 @@ export default function DashboardPage() {
           </div>
         </section>
         <aside className="stack">
-          <PomodoroTimer />
+          <PomodoroTimer studyHours={summary?.daily_available_hours} />
           <div className="panel stack">
             <div className="row">
               <h2>科目</h2>

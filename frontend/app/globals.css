@@ -293,6 +293,25 @@ p {
   line-height: 1;
 }
 
+.timer-target {
+  background: var(--surface-muted);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  display: grid;
+  gap: 4px;
+  padding: 12px;
+}
+
+.timer-target strong {
+  color: var(--primary);
+  font-size: 28px;
+  line-height: 1.1;
+}
+
+.timer-target p {
+  margin-bottom: 0;
+}
+
 .timer-progress {
   height: 12px;
 }
