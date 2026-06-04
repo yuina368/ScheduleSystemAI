@@ -1,5 +1,13 @@
 # ScheduleSystemAI
 
+![Version](https://img.shields.io/badge/version-v0.1.0-127267)
+![Next.js](https://img.shields.io/badge/Next.js-15-black?logo=nextdotjs)
+![FastAPI](https://img.shields.io/badge/FastAPI-0.110%2B-009688?logo=fastapi)
+![TypeScript](https://img.shields.io/badge/TypeScript-5.6-3178C6?logo=typescript&logoColor=white)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-supported-4169E1?logo=postgresql&logoColor=white)
+![Deploy](https://img.shields.io/badge/deploy-Vercel-black?logo=vercel)
+![License](https://img.shields.io/badge/license-MIT-blue)
+
 ScheduleSystemAI は、資格試験の学習における「今日どれくらい勉強すればよいか」を自動で割り出す学習時間配分アプリケーションです。
 
 基本情報技術者試験や TOEIC のように、複数の科目・分野を期限までに進める必要がある学習で、ユーザーが毎日細かく計画を立て直さなくてもよい状態を目指しています。
