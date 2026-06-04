@@ -1,30 +1,239 @@
 # ScheduleSystemAI
 
-ScheduleSystemAI is an MVP for AI-assisted study planning. The first version does not require an LLM: it generates a daily study plan from `remaining_hours / remaining_days`, then recalculates the plan whenever the user records today's progress.
+ScheduleSystemAI は、資格試験の学習における「今日どれくらい勉強すればよいか」を自動で割り出す学習時間配分アプリケーションです。
 
-## Stack
+基本情報技術者試験や TOEIC のように、複数の科目・分野を期限までに進める必要がある学習で、ユーザーが毎日細かく計画を立て直さなくてもよい状態を目指しています。
 
-- Frontend: Next.js App Router, TypeScript, Vercel-ready
-- Backend: FastAPI, SQLAlchemy, Alembic, Railway-ready
-- Database: PostgreSQL
+公開 URL: https://schedule-system-ai.vercel.app/
 
-## Repository Layout
+## 開発背景
+
+このアプリケーションは、資格試験の勉強における 1 日の勉強時間配分を支援するために作りました。
+
+資格試験の学習では、次のような問題が起きやすいです。
+
+- 今日はどの科目をどれくらいやるべきか判断するのが面倒
+- 締切や試験日から逆算した学習量が見えにくい
+- 予定より進んだ日・遅れた日のあとに計画を立て直すのが大変
+- 「勉強する内容を決める」こと自体にエネルギーを使ってしまう
+
+ScheduleSystemAI は、こうした負担を減らし、ユーザーができるだけ「非主体的」に資格試験の勉強へ入れるようにするためのアプリケーションです。
+
+ここでの「非主体的」とは、学習そのものを放棄するという意味ではありません。毎日の学習配分や再計算をシステムに任せ、ユーザーは提示された計画に沿って勉強し、実績だけを入力するという意味です。
+
+## コンセプト
+
+```text
+科目を登録する
+  ↓
+締切と必要時間から今日の学習時間を自動計算する
+  ↓
+ユーザーは今日やった分数を入力する
+  ↓
+残り時間と残り日数から計画を再計算する
+```
+
+このサイクルによって、学習計画を毎日手動で組み直す手間を減らします。
+
+## 主な機能
+
+- メールアドレスとパスワードによる新規登録・ログイン
+- 科目登録
+  - 科目名
+  - 締切日
+  - 必要学習時間
+  - 完了済み時間
+- 必要学習時間の編集
+- 残り学習割合の表示
+- 1 日の学習可能時間の設定
+- 今日の学習計画の自動生成
+- 学習実績の分単位入力
+- 実績入力後の自動再計算
+- 15 分学習 / 5 分休憩のポモドーロタイマー
+- 1 日の学習時間から必要な 15 分タイマー回数を表示
+- 今日の予定が学習可能時間を超えた場合の警告
+
+## 想定する利用シーン
+
+- 基本情報技術者試験の科目別学習
+- TOEIC のリスニング・リーディング対策
+- 複数教材を期限までに進めたい資格試験学習
+- 毎日の学習配分を自分で考える負担を減らしたいケース
+
+## Web アプリケーション設計図
+
+### 全体アーキテクチャ
+
+```mermaid
+flowchart LR
+  User["User"]
+  Frontend["Frontend\nNext.js / TypeScript\nVercel"]
+  Backend["Backend\nFastAPI / SQLAlchemy\nVercel"]
+  DB["PostgreSQL\nNeon / Supabase など"]
+
+  User --> Frontend
+  Frontend -->|"REST API"| Backend
+  Backend -->|"SQLAlchemy"| DB
+```
+
+### 学習計画の流れ
+
+```mermaid
+flowchart TD
+  A["ユーザーが科目を登録"] --> B["必要時間・完了時間・締切日を保存"]
+  B --> C["残り時間を計算"]
+  C --> D["締切日までの残り日数を計算"]
+  D --> E["今日の予定時間を算出"]
+  E --> F["Dashboard に表示"]
+  F --> G["Check-in で実績を分単位入力"]
+  G --> H["完了時間を更新"]
+  H --> I["翌日以降の計画を再計算"]
+  I --> F
+```
+
+### データモデル
+
+```mermaid
+erDiagram
+  USERS ||--o| STUDY_SETTINGS : has
+  USERS ||--o{ SUBJECTS : owns
+  SUBJECTS ||--o{ STUDY_PLANS : has
+  SUBJECTS ||--o{ STUDY_LOGS : records
+
+  USERS {
+    int id
+    string email
+    string hashed_password
+    datetime created_at
+  }
+
+  STUDY_SETTINGS {
+    int id
+    int user_id
+    float daily_available_hours
+  }
+
+  SUBJECTS {
+    int id
+    int user_id
+    string name
+    date deadline_date
+    float required_hours
+    float completed_hours
+    string status
+  }
+
+  STUDY_PLANS {
+    int id
+    int user_id
+    int subject_id
+    date plan_date
+    float planned_hours
+    string status
+  }
+
+  STUDY_LOGS {
+    int id
+    int user_id
+    int subject_id
+    date log_date
+    float planned_hours
+    float actual_hours
+    bool did_study
+    string note
+  }
+```
+
+### 画面設計
+
+| 画面 | 役割 |
+| --- | --- |
+| Signup / Login | ユーザー登録・ログイン |
+| Dashboard | 今日の予定、学習可能時間、残り割合、ポモドーロタイマーを表示 |
+| Subjects | 科目一覧、必要時間編集、残り割合確認、科目削除 |
+| Add Subject | 新しい科目の登録 |
+| Settings | 1 日の学習可能時間を設定 |
+| Check-in | 今日の実績を分単位で入力 |
+
+## 学習計画の計算式
+
+現在の計画生成は LLM ではなく、シンプルな数式ベースです。
+
+```text
+remaining_hours = required_hours - completed_hours
+remaining_days = deadline_date - today + 1
+planned_hours_per_day = remaining_hours / remaining_days
+```
+
+実績を入力すると `completed_hours` が更新され、残り時間と残り日数から計画が再計算されます。
+
+## ポモドーロタイマー
+
+Dashboard には 15 分学習 / 5 分休憩のポモドーロタイマーがあります。
+
+1 日の学習可能時間から、15 分タイマーを何回回せばよいかを表示します。
+
+例:
+
+```text
+1日の勉強時間 2時間
+8回
+15分タイマーを8回回すと達成できます。
+```
+
+## 技術構成
+
+| 領域 | 技術 |
+| --- | --- |
+| Frontend | Next.js App Router, React, TypeScript |
+| UI | CSS, lucide-react |
+| Backend | FastAPI |
+| ORM | SQLAlchemy |
+| Migration | Alembic |
+| Database | PostgreSQL |
+| Auth | JWT |
+| Frontend Deploy | Vercel |
+| Backend Deploy | Vercel |
+| Database Hosting | Neon / Supabase など |
+
+## ディレクトリ構成
 
 ```text
 .
-├── backend/   # FastAPI API, DB models, planner service
-└── frontend/  # Next.js UI
+├── backend/
+│   ├── app/
+│   │   ├── core/
+│   │   ├── db/
+│   │   ├── routers/
+│   │   ├── services/
+│   │   ├── main.py
+│   │   ├── models.py
+│   │   └── schemas.py
+│   ├── alembic/
+│   ├── tests/
+│   ├── requirements.txt
+│   └── server.py
+├── frontend/
+│   ├── app/
+│   ├── components/
+│   ├── lib/
+│   ├── package.json
+│   └── vercel.json
+├── docker-compose.yml
+├── requirements.txt
+├── server.py
+└── README.md
 ```
 
-## Quick Start
+## ローカル起動
 
-### 1. Start PostgreSQL
+### 1. PostgreSQL を起動
 
 ```bash
 docker compose up -d db
 ```
 
-### 2. Run the backend
+### 2. Backend を起動
 
 ```bash
 cd backend
@@ -35,7 +244,7 @@ cp .env.example .env
 uvicorn app.main:app --reload
 ```
 
-On Windows PowerShell:
+Windows PowerShell:
 
 ```powershell
 cd backend
@@ -46,9 +255,9 @@ Copy-Item .env.example .env
 uvicorn app.main:app --reload
 ```
 
-The API runs at `http://localhost:8000`.
+Backend は `http://localhost:8000` で起動します。
 
-### 3. Run the frontend
+### 3. Frontend を起動
 
 ```bash
 cd frontend
@@ -57,82 +266,82 @@ cp .env.example .env.local
 npm run dev
 ```
 
-The app runs at `http://localhost:3000`.
+Frontend は `http://localhost:3000` で起動します。
 
-## MVP Features
+## 環境変数
 
-- Email/password signup and login
-- Subject registration with deadline and required study hours
-- Daily available study time setting
-- Formula-based plan generation
-- Today's check-in with actual study hours
-- Automatic plan recalculation after every check-in
-- Capacity warning when today's planned hours exceed available hours
+### Backend
 
-## Planning Formula
-
-For each active subject:
-
-```text
-remaining_hours = required_hours - completed_hours
-remaining_days = deadline_date - today + 1
-planned_hours_per_day = remaining_hours / remaining_days
+```env
+DATABASE_URL=postgresql+psycopg://postgres:postgres@localhost:5432/schedulesystemai
+SECRET_KEY=change-this-secret-in-production
+ACCESS_TOKEN_EXPIRE_MINUTES=10080
+BACKEND_CORS_ORIGINS=http://localhost:3000
+CREATE_TABLES_ON_STARTUP=true
 ```
 
-Gemini Flash can be added later by replacing the planner implementation behind the same API surface.
+### Frontend
 
-## Deployment Notes
+```env
+NEXT_PUBLIC_API_BASE_URL=http://localhost:8000
+```
 
-### Vercel Frontend
+## デプロイ
 
-- Project root: `frontend`
+このアプリケーションは frontend と backend を別々の Vercel Project としてデプロイします。
+
+### Frontend
+
+- Root Directory: `frontend`
 - Framework Preset: `Next.js`
-- Build command: `npm run build`
-- Install command: `npm install`
-- Output: Next.js default
-- Environment variables:
-  - `NEXT_PUBLIC_API_BASE_URL=https://your-railway-api.example.com`
+- Build Command: `npm run build`
+- Install Command: `npm install`
+- Environment Variables:
+  - `NEXT_PUBLIC_API_BASE_URL=https://your-backend.vercel.app`
 
-### Railway Backend
+本番 Frontend URL:
 
-- Project root: `backend`
-- Database: Railway PostgreSQL
-- Environment variables:
-  - `DATABASE_URL` from Railway PostgreSQL
-  - `SECRET_KEY` with a long random value
-  - `BACKEND_CORS_ORIGINS=https://your-vercel-app.vercel.app`
-  - `CREATE_TABLES_ON_STARTUP=true` for MVP
-- Start command if not using Docker: `uvicorn app.main:app --host 0.0.0.0 --port $PORT`
+```text
+https://schedule-system-ai.vercel.app/
+```
 
-For production hardening, switch `CREATE_TABLES_ON_STARTUP=false` and run Alembic migrations during deploy.
+### Backend
 
-### Vercel Backend
-
-If Railway is unavailable, the FastAPI backend can also run on Vercel. Vercel hosts the FastAPI serverless function, but it does not replace PostgreSQL for this app. Create a free PostgreSQL database with Neon, Supabase, or another hosted provider first, then use that connection string as `DATABASE_URL`.
-
-- Create a second Vercel project from the same repository.
-- Set Root Directory to `backend`.
-- Set Framework Preset to `Other`.
-- Keep Build Command empty unless Vercel asks for one.
-- Add environment variables:
-  - `DATABASE_URL` from Neon, Supabase, or another hosted PostgreSQL provider
-  - `SECRET_KEY` with a long random value
+- Root Directory: `backend`
+- Framework Preset: `Other` または `Python`
+- Build Command: 空でよい
+- Environment Variables:
+  - `DATABASE_URL`
+  - `SECRET_KEY`
   - `BACKEND_CORS_ORIGINS=https://your-frontend.vercel.app`
   - `CREATE_TABLES_ON_STARTUP=true`
 
-The backend root URL should return a JSON status response. `/health` should return `{"status":"ok"}`.
+Backend のデプロイ後、次の URL が応答すれば成功です。
 
-After the backend deploys, copy its Vercel URL into the frontend project as `NEXT_PUBLIC_API_BASE_URL`, then redeploy the frontend. Also update the backend project's `BACKEND_CORS_ORIGINS` to the exact frontend URL.
+```text
+https://your-backend.vercel.app/health
+```
 
-The Vercel backend entrypoint is `backend/server.py`, and `backend/pyproject.toml` points Vercel to `server:app`.
+期待されるレスポンス:
 
-Do not deploy the repository root as a single Vercel project for this MVP. Use two Vercel projects:
+```json
+{
+  "status": "ok",
+  "database": {
+    "status": "ok"
+  }
+}
+```
 
-1. `frontend` as the Next.js app
-2. `backend` as the FastAPI API
+## 今後の拡張案
 
-If Vercel shows "No FastAPI entrypoint found", set the backend project's Root Directory to `backend`. The backend-specific `pyproject.toml` lives in that folder.
+- Gemini Flash などの LLM を使った学習計画の提案
+- 科目ごとの優先度設定
+- 過去の学習ログの可視化
+- 週単位・月単位の進捗レポート
+- ポモドーロ完了回数の保存
+- 試験別テンプレートの追加
 
-The repository root also includes thin `server.py` / `main.py` entrypoints and `requirements.txt` as a fallback for Vercel deployments that are still pointed at `./`. Prefer `Root Directory: backend` for the backend project, but the fallback prevents the default FastAPI entrypoint detector from failing.
+## License
 
-If Vercel shows `500: FUNCTION_INVOCATION_FAILED`, open the backend deployment logs first. The most common cause is a missing or invalid `DATABASE_URL`. `/health` returns database status when the app boots far enough to respond.
+MIT License
