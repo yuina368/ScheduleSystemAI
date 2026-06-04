@@ -53,7 +53,7 @@ ScheduleSystemAI は、こうした負担を減らし、ユーザーができる
   - 完了済み時間
 - 必要学習時間の編集
 - 残り学習割合の表示
-- 1 日の学習可能時間の設定
+- 平日・土日の学習可能時間の設定
 - 今日の学習計画の自動生成
 - 学習実績の分単位入力
 - 実績入力後の自動再計算
@@ -89,14 +89,15 @@ flowchart LR
 ```mermaid
 flowchart TD
   A["ユーザーが科目を登録"] --> B["必要時間・完了時間・締切日を保存"]
-  B --> C["残り時間を計算"]
-  C --> D["締切日までの残り日数を計算"]
-  D --> E["今日の予定時間を算出"]
-  E --> F["Dashboard に表示"]
-  F --> G["Check-in で実績を分単位入力"]
-  G --> H["完了時間を更新"]
-  H --> I["翌日以降の計画を再計算"]
-  I --> F
+  B --> C["日本時間の今日を基準にする"]
+  C --> D["残り時間を計算"]
+  D --> E["締切日までの各日を平日・土日に分類"]
+  E --> F["各日の学習可能時間を重みにして予定時間を算出"]
+  F --> G["Dashboard に表示"]
+  G --> H["Check-in で実績を分単位入力"]
+  H --> I["完了時間を更新"]
+  I --> J["翌日以降の計画を再計算"]
+  J --> G
 ```
 
 ### データモデル
@@ -119,6 +120,8 @@ erDiagram
     int id
     int user_id
     float daily_available_hours
+    float weekday_available_hours
+    float weekend_available_hours
   }
 
   SUBJECTS {
@@ -152,6 +155,18 @@ erDiagram
   }
 ```
 
+### 設定カラム
+
+`study_settings` には、時間管理の基準として次のカラムを持たせています。
+
+| カラム | 役割 |
+| --- | --- |
+| `daily_available_hours` | 既存データとの互換用の 1 日学習可能時間 |
+| `weekday_available_hours` | 平日に確保できる学習時間 |
+| `weekend_available_hours` | 土日に確保できる学習時間 |
+
+既存データベース向けには `backend/alembic/versions/0002_weekend_study_settings.py` でカラムを追加し、既存の `daily_available_hours` から初期値を引き継ぎます。`CREATE_TABLES_ON_STARTUP=true` の環境では、起動時にも不足カラムを補完します。
+
 ### 画面設計
 
 | 画面 | 役割 |
@@ -160,20 +175,22 @@ erDiagram
 | Dashboard | 今日の予定、学習可能時間、残り割合、ポモドーロタイマーを表示 |
 | Subjects | 科目一覧、必要時間編集、残り割合確認、科目削除 |
 | Add Subject | 新しい科目の登録 |
-| Settings | 1 日の学習可能時間を設定 |
+| Settings | 平日・土日の学習可能時間を設定 |
 | Check-in | 今日の実績を分単位で入力 |
 
 ## 学習計画の計算式
 
-現在の計画生成は LLM ではなく、シンプルな数式ベースです。
+現在の計画生成は LLM ではなく、シンプルな数式ベースです。日付は `Asia/Tokyo` の現在日付を基準にします。
 
 ```text
 remaining_hours = required_hours - completed_hours
-remaining_days = deadline_date - today + 1
-planned_hours_per_day = remaining_hours / remaining_days
+planning_dates = today から deadline_date までの日付
+available_hours_for_day = 平日なら weekday_available_hours、土日なら weekend_available_hours
+total_available_hours = planning_dates 内の available_hours_for_day の合計
+planned_hours_for_day = remaining_hours * (available_hours_for_day / total_available_hours)
 ```
 
-実績を入力すると `completed_hours` が更新され、残り時間と残り日数から計画が再計算されます。
+実績を入力すると `completed_hours` が更新され、残り時間・現在日付・平日/土日の学習可能時間から計画が再計算されます。
 
 ## ポモドーロタイマー
 
@@ -286,6 +303,7 @@ SECRET_KEY=change-this-secret-in-production
 ACCESS_TOKEN_EXPIRE_MINUTES=10080
 BACKEND_CORS_ORIGINS=http://localhost:3000
 CREATE_TABLES_ON_STARTUP=true
+APP_TIMEZONE=Asia/Tokyo
 ```
 
 ### Frontend
@@ -323,6 +341,7 @@ https://schedule-system-ai.vercel.app/
   - `SECRET_KEY`
   - `BACKEND_CORS_ORIGINS=https://your-frontend.vercel.app`
   - `CREATE_TABLES_ON_STARTUP=true`
+  - `APP_TIMEZONE=Asia/Tokyo`
 
 Backend のデプロイ後、次の URL が応答すれば成功です。
 

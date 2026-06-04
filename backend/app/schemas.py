@@ -28,13 +28,17 @@ class AuthResponse(BaseModel):
 
 
 class StudySettingUpsert(BaseModel):
-    daily_available_hours: float = Field(gt=0, le=24)
+    daily_available_hours: float | None = Field(default=None, gt=0, le=24)
+    weekday_available_hours: float | None = Field(default=None, gt=0, le=24)
+    weekend_available_hours: float | None = Field(default=None, gt=0, le=24)
 
 
 class StudySettingRead(BaseModel):
     id: int
     user_id: int
     daily_available_hours: float
+    weekday_available_hours: float
+    weekend_available_hours: float
 
     model_config = ConfigDict(from_attributes=True)
 

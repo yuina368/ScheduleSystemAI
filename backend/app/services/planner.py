@@ -3,12 +3,29 @@ from datetime import date, timedelta
 from sqlalchemy import delete, func, select
 from sqlalchemy.orm import Session, joinedload
 
+from app.core.dates import app_today
 from app.models import StudyPlan, StudySetting, Subject
 
 
-def get_daily_available_hours(db: Session, user_id: int) -> float:
-    setting = db.scalar(select(StudySetting).where(StudySetting.user_id == user_id))
-    return setting.daily_available_hours if setting else 2.0
+def get_study_setting(db: Session, user_id: int) -> StudySetting | None:
+    return db.scalar(select(StudySetting).where(StudySetting.user_id == user_id))
+
+
+def is_weekend(target_date: date) -> bool:
+    return target_date.weekday() >= 5
+
+
+def available_hours_from_setting(setting: StudySetting | None, target_date: date) -> float:
+    if not setting:
+        return 2.0
+
+    if is_weekend(target_date):
+        return float(setting.weekend_available_hours or setting.daily_available_hours or 2.0)
+    return float(setting.weekday_available_hours or setting.daily_available_hours or 2.0)
+
+
+def get_daily_available_hours(db: Session, user_id: int, target_date: date) -> float:
+    return available_hours_from_setting(get_study_setting(db, user_id), target_date)
 
 
 def refresh_subject_status(subject: Subject) -> None:
@@ -20,7 +37,8 @@ def refresh_subject_status(subject: Subject) -> None:
 
 
 def regenerate_plans(db: Session, user_id: int, start_date: date | None = None) -> list[StudyPlan]:
-    today = start_date or date.today()
+    today = start_date or app_today()
+    setting = get_study_setting(db, user_id)
 
     db.execute(
         delete(StudyPlan).where(
@@ -46,17 +64,18 @@ def regenerate_plans(db: Session, user_id: int, start_date: date | None = None) 
         if remaining_hours <= 0:
             continue
 
-        remaining_days = (subject.deadline_date - today).days + 1
-        if remaining_days <= 0:
+        planning_dates = [today + timedelta(days=offset) for offset in range((subject.deadline_date - today).days + 1)]
+        day_weights = [(plan_date, available_hours_from_setting(setting, plan_date)) for plan_date in planning_dates]
+        total_weight = sum(weight for _, weight in day_weights)
+        if total_weight <= 0:
             continue
 
-        planned_hours = round(remaining_hours / remaining_days, 4)
-        for offset in range(remaining_days):
+        for plan_date, weight in day_weights:
             plan = StudyPlan(
                 user_id=user_id,
                 subject_id=subject.id,
-                plan_date=today + timedelta(days=offset),
-                planned_hours=planned_hours,
+                plan_date=plan_date,
+                planned_hours=round(remaining_hours * (weight / total_weight), 4),
                 status="planned",
             )
             db.add(plan)
@@ -73,7 +92,7 @@ def get_plan_summary(db: Session, user_id: int, plan_date: date) -> dict:
         .where(StudyPlan.user_id == user_id, StudyPlan.plan_date == plan_date)
         .order_by(StudyPlan.planned_hours.desc(), StudyPlan.id.asc())
     ).all()
-    daily_available_hours = get_daily_available_hours(db, user_id)
+    daily_available_hours = get_daily_available_hours(db, user_id, plan_date)
     total = sum(plan.planned_hours for plan in plans)
     return {
         "plan_date": plan_date,

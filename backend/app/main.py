@@ -1,5 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from sqlalchemy import inspect
 from sqlalchemy import text
 from sqlalchemy.exc import SQLAlchemyError
 
@@ -37,8 +38,40 @@ def on_startup() -> None:
     if app_settings.create_tables_on_startup:
         try:
             Base.metadata.create_all(bind=engine)
+            ensure_study_settings_columns()
         except SQLAlchemyError as exc:
             app.state.db_startup_error = str(exc)
+
+
+def ensure_study_settings_columns() -> None:
+    inspector = inspect(engine)
+    if not inspector.has_table("study_settings"):
+        return
+
+    existing_columns = {column["name"] for column in inspector.get_columns("study_settings")}
+    with engine.begin() as connection:
+        if "weekday_available_hours" not in existing_columns:
+            connection.execute(text("ALTER TABLE study_settings ADD COLUMN weekday_available_hours FLOAT"))
+        if "weekend_available_hours" not in existing_columns:
+            connection.execute(text("ALTER TABLE study_settings ADD COLUMN weekend_available_hours FLOAT"))
+        connection.execute(
+            text(
+                """
+                UPDATE study_settings
+                SET weekday_available_hours = daily_available_hours
+                WHERE weekday_available_hours IS NULL
+                """
+            )
+        )
+        connection.execute(
+            text(
+                """
+                UPDATE study_settings
+                SET weekend_available_hours = daily_available_hours
+                WHERE weekend_available_hours IS NULL
+                """
+            )
+        )
 
 
 def database_status() -> dict[str, str]:

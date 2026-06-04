@@ -20,7 +20,14 @@ def signup(payload: UserCreate, db: Session = Depends(get_db)) -> AuthResponse:
     user = User(email=payload.email.lower(), hashed_password=get_password_hash(payload.password))
     db.add(user)
     db.flush()
-    db.add(StudySetting(user_id=user.id, daily_available_hours=2.0))
+    db.add(
+        StudySetting(
+            user_id=user.id,
+            daily_available_hours=2.0,
+            weekday_available_hours=2.0,
+            weekend_available_hours=2.0,
+        )
+    )
     db.commit()
     db.refresh(user)
 

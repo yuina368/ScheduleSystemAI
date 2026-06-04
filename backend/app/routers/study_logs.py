@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.core.dates import app_today
 from app.db.session import get_db
 from app.deps import get_current_user
 from app.models import StudyLog, Subject, User
@@ -34,7 +35,7 @@ def upsert_log(
     if not subject or subject.user_id != current_user.id:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Subject not found")
 
-    log_date = payload.log_date or date.today()
+    log_date = payload.log_date or app_today()
     planned_hours = planned_hours_for_subject(db, current_user.id, subject.id, log_date)
     actual_hours = payload.actual_hours if payload.did_study else 0.0
 

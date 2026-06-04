@@ -15,8 +15,18 @@ router = APIRouter(prefix="/settings", tags=["settings"])
 def get_study_time(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)) -> StudySetting:
     setting = db.scalar(select(StudySetting).where(StudySetting.user_id == current_user.id))
     if not setting:
-        setting = StudySetting(user_id=current_user.id, daily_available_hours=2.0)
+        setting = StudySetting(
+            user_id=current_user.id,
+            daily_available_hours=2.0,
+            weekday_available_hours=2.0,
+            weekend_available_hours=2.0,
+        )
         db.add(setting)
+        db.commit()
+        db.refresh(setting)
+    elif setting.weekday_available_hours is None or setting.weekend_available_hours is None:
+        setting.weekday_available_hours = setting.weekday_available_hours or setting.daily_available_hours
+        setting.weekend_available_hours = setting.weekend_available_hours or setting.daily_available_hours
         db.commit()
         db.refresh(setting)
     return setting
@@ -29,11 +39,35 @@ def upsert_study_time(
     db: Session = Depends(get_db),
 ) -> StudySetting:
     setting = db.scalar(select(StudySetting).where(StudySetting.user_id == current_user.id))
+    current_daily = setting.daily_available_hours if setting else 2.0
+    current_weekday = setting.weekday_available_hours if setting and setting.weekday_available_hours is not None else current_daily
+    current_weekend = setting.weekend_available_hours if setting and setting.weekend_available_hours is not None else current_daily
+    weekday_hours = (
+        payload.weekday_available_hours
+        if payload.weekday_available_hours is not None
+        else payload.daily_available_hours
+        if payload.daily_available_hours is not None
+        else current_weekday
+    )
+    weekend_hours = (
+        payload.weekend_available_hours
+        if payload.weekend_available_hours is not None
+        else payload.daily_available_hours
+        if payload.daily_available_hours is not None
+        else current_weekend
+    )
     if not setting:
-        setting = StudySetting(user_id=current_user.id, daily_available_hours=payload.daily_available_hours)
+        setting = StudySetting(
+            user_id=current_user.id,
+            daily_available_hours=weekday_hours,
+            weekday_available_hours=weekday_hours,
+            weekend_available_hours=weekend_hours,
+        )
         db.add(setting)
     else:
-        setting.daily_available_hours = payload.daily_available_hours
+        setting.daily_available_hours = weekday_hours
+        setting.weekday_available_hours = weekday_hours
+        setting.weekend_available_hours = weekend_hours
 
     regenerate_plans(db, current_user.id)
     db.commit()

@@ -14,6 +14,8 @@ export type StudySetting = {
   id: number;
   user_id: number;
   daily_available_hours: number;
+  weekday_available_hours: number;
+  weekend_available_hours: number;
 };
 
 export type Subject = {

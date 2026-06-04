@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends, Query
 from sqlalchemy import select
 from sqlalchemy.orm import Session, joinedload
 
+from app.core.dates import app_today
 from app.db.session import get_db
 from app.deps import get_current_user
 from app.models import StudyPlan, User
@@ -37,7 +38,7 @@ def list_plans(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> list[StudyPlan]:
-    start = from_date or date.today()
+    start = from_date or app_today()
     end = to_date or (start + timedelta(days=30))
     return list(
         db.scalars(
@@ -55,4 +56,4 @@ def list_plans(
 
 @router.get("/today", response_model=PlanSummary)
 def today_plan(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)) -> dict:
-    return get_plan_summary(db, current_user.id, date.today())
+    return get_plan_summary(db, current_user.id, app_today())
