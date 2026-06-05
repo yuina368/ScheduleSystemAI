@@ -138,7 +138,7 @@ export default function DashboardPage() {
                 {analysis.daily_summaries
                   .slice()
                   .reverse()
-                  .slice(0, 7)
+                  .slice(0, 3)
                   .map((daily) => (
                     <div className="daily-row" key={daily.log_date}>
                       <span>{daily.log_date}</span>
