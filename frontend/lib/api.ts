@@ -90,6 +90,7 @@ export type RegressionAnalysis = {
   total_remaining_hours: number;
   projected_study_hours: number;
   final_status_label: string;
+  study_streak_days: number;
   subject_forecasts: SubjectCompletionForecast[];
   daily_summaries: DailyStudySummary[];
 };

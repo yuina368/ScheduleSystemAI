@@ -226,8 +226,47 @@ def test_study_regression_uses_daily_actual_totals() -> None:
     assert analysis["slope_per_day"] > 0
     assert analysis["final_completion_probability"] > 50
     assert analysis["total_remaining_hours"] == 10
+    assert analysis["study_streak_days"] == 3
     assert analysis["subject_forecasts"][0]["subject_name"] == "Exam"
     assert analysis["trend_label"] in {"要再計画", "調整圏", "継続圏"}
+
+
+def test_study_streak_uses_yesterday_when_today_has_no_log() -> None:
+    engine = create_engine("sqlite:///:memory:")
+    Base.metadata.create_all(bind=engine)
+
+    today = date(2026, 6, 3)
+    with Session(engine) as db:
+        user = User(email="streak@example.com", hashed_password="hashed")
+        db.add(user)
+        db.flush()
+        subject = Subject(
+            user_id=user.id,
+            name="Exam",
+            deadline_date=today + timedelta(days=7),
+            required_hours=10,
+            completed_hours=0,
+            status="active",
+        )
+        db.add(subject)
+        db.flush()
+
+        for log_date in [date(2026, 6, 1), date(2026, 6, 2)]:
+            db.add(
+                StudyLog(
+                    user_id=user.id,
+                    subject_id=subject.id,
+                    log_date=log_date,
+                    planned_hours=1,
+                    actual_hours=1,
+                    did_study=True,
+                )
+            )
+        db.flush()
+
+        analysis = get_study_regression(db, user.id, target_date=today, days=4)
+
+    assert analysis["study_streak_days"] == 2
 
 
 def test_final_completion_probability_uses_shared_capacity() -> None:

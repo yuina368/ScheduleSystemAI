@@ -87,6 +87,10 @@ textarea {
   grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
+.dashboard-metrics {
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+}
+
 .card,
 .panel {
   padding: 20px;
@@ -230,7 +234,14 @@ p {
 }
 
 .metric strong {
+  align-items: center;
+  display: inline-flex;
   font-size: 28px;
+  gap: 6px;
+}
+
+.streak-metric strong {
+  color: #a74307;
 }
 
 .ai-panel {

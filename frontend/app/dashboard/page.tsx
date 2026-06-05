@@ -51,7 +51,7 @@ export default function DashboardPage() {
           </div>
           {error ? <p className="error">{error}</p> : null}
           {summary ? (
-            <div className="grid grid-3">
+            <div className="grid dashboard-metrics">
               <div className="card metric">
                 <span className="muted">今日の予定</span>
                 <strong>{formatHours(summary.total_planned_hours)}</strong>
@@ -66,6 +66,15 @@ export default function DashboardPage() {
                   {summary.plans.length}/{summary.max_daily_subjects}
                 </strong>
               </div>
+              {analysis ? (
+                <div className="card metric streak-metric">
+                  <span className="muted">連続学習</span>
+                  <strong>
+                    <span aria-hidden="true">🔥</span>
+                    {analysis.study_streak_days}日連続
+                  </strong>
+                </div>
+              ) : null}
             </div>
           ) : null}
           {summary?.over_capacity ? (

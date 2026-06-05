@@ -171,5 +171,6 @@ class RegressionAnalysis(BaseModel):
     total_remaining_hours: float
     projected_study_hours: float
     final_status_label: str
+    study_streak_days: int
     subject_forecasts: list[SubjectCompletionForecast]
     daily_summaries: list[DailyStudySummary]

@@ -75,6 +75,30 @@ def get_daily_study_summaries(
     return summaries
 
 
+def get_study_streak_days(db: Session, user_id: int, target_date: date) -> int:
+    studied_dates = set(
+        db.scalars(
+            select(StudyLog.log_date)
+            .where(
+                StudyLog.user_id == user_id,
+                StudyLog.log_date <= target_date,
+                StudyLog.did_study.is_(True),
+                StudyLog.actual_hours > 0,
+            )
+            .distinct()
+        ).all()
+    )
+    if not studied_dates:
+        return 0
+
+    cursor = target_date if target_date in studied_dates else target_date - timedelta(days=1)
+    streak_days = 0
+    while cursor in studied_dates:
+        streak_days += 1
+        cursor -= timedelta(days=1)
+    return streak_days
+
+
 def get_recent_execution_profile(summaries: list[dict], today: date) -> dict:
     samples = [
         summary
@@ -179,6 +203,7 @@ def get_study_regression(
     today = target_date or app_today()
     summaries = get_daily_study_summaries(db, user_id, today, days)
     samples = [summary for summary in summaries if summary["planned_hours"] > 0 or summary["actual_hours"] > 0]
+    study_streak_days = get_study_streak_days(db, user_id, today)
     execution_profile = get_recent_execution_profile(summaries, today)
     subject_forecasts = get_subject_completion_forecasts(
         db,
@@ -226,6 +251,7 @@ def get_study_regression(
             "total_remaining_hours": round(total_remaining_hours, 4),
             "projected_study_hours": round(projected_study_hours, 4),
             "final_status_label": final_status_label,
+            "study_streak_days": study_streak_days,
             "subject_forecasts": subject_forecasts,
             "daily_summaries": summaries,
         }
@@ -269,6 +295,7 @@ def get_study_regression(
         "total_remaining_hours": round(total_remaining_hours, 4),
         "projected_study_hours": round(projected_study_hours, 4),
         "final_status_label": final_status_label,
+        "study_streak_days": study_streak_days,
         "subject_forecasts": subject_forecasts,
         "daily_summaries": summaries,
     }
