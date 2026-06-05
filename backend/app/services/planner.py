@@ -240,6 +240,12 @@ def get_plan_summary(db: Session, user_id: int, plan_date: date) -> dict:
     }
 
 
+def get_refreshed_plan_summary(db: Session, user_id: int, plan_date: date) -> dict:
+    regenerate_plans(db, user_id, plan_date)
+    db.flush()
+    return get_plan_summary(db, user_id, plan_date)
+
+
 def planned_hours_for_subject(db: Session, user_id: int, subject_id: int, log_date: date) -> float:
     value = db.scalar(
         select(func.coalesce(StudyPlan.planned_hours, 0))

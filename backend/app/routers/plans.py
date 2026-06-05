@@ -9,7 +9,7 @@ from app.db.session import get_db
 from app.deps import get_current_user
 from app.models import StudyPlan, User
 from app.schemas import PlanSummary, StudyPlanRead
-from app.services.planner import get_plan_summary, regenerate_plans
+from app.services.planner import get_refreshed_plan_summary, regenerate_plans
 
 router = APIRouter(prefix="/plans", tags=["plans"])
 
@@ -56,4 +56,6 @@ def list_plans(
 
 @router.get("/today", response_model=PlanSummary)
 def today_plan(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)) -> dict:
-    return get_plan_summary(db, current_user.id, app_today())
+    summary = get_refreshed_plan_summary(db, current_user.id, app_today())
+    db.commit()
+    return summary

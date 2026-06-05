@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 from app.db.session import Base
 from app.models import StudyLog, StudyPlan, StudySetting, Subject, User
 from app.services.analytics import get_study_regression
-from app.services.planner import regenerate_plans
+from app.services.planner import get_refreshed_plan_summary, regenerate_plans
 
 
 def test_formula_expected_daily_hours() -> None:
@@ -116,6 +116,57 @@ def test_regenerate_plans_limits_daily_subjects_by_priority() -> None:
     assert today_plans[0].subject_id == subjects[0].id
     assert all(plan.priority_score is not None for plan in today_plans)
     assert all(plan.priority_reasons for plan in today_plans)
+
+
+def test_refreshed_plan_summary_replaces_stale_over_limit_plans() -> None:
+    engine = create_engine("sqlite:///:memory:")
+    Base.metadata.create_all(bind=engine)
+
+    today = date(2026, 6, 5)
+    with Session(engine) as db:
+        user = User(email="stale@example.com", hashed_password="hashed")
+        db.add(user)
+        db.flush()
+        db.add(
+            StudySetting(
+                user_id=user.id,
+                daily_available_hours=4,
+                weekday_available_hours=4,
+                weekend_available_hours=4,
+                max_daily_subjects=3,
+            )
+        )
+        subjects = []
+        for index in range(5):
+            subject = Subject(
+                user_id=user.id,
+                name=f"Subject {index}",
+                deadline_date=today + timedelta(days=index + 1),
+                required_hours=6,
+                completed_hours=0,
+                status="active",
+            )
+            db.add(subject)
+            subjects.append(subject)
+        db.flush()
+
+        for subject in subjects:
+            db.add(
+                StudyPlan(
+                    user_id=user.id,
+                    subject_id=subject.id,
+                    plan_date=today,
+                    planned_hours=1,
+                    status="planned",
+                )
+            )
+        db.flush()
+
+        summary = get_refreshed_plan_summary(db, user.id, today)
+
+    assert summary["max_daily_subjects"] == 3
+    assert len(summary["plans"]) == 3
+    assert all(plan.priority_score is not None for plan in summary["plans"])
 
 
 def test_study_regression_uses_daily_actual_totals() -> None:
