@@ -2,24 +2,36 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { AlertTriangle, CheckCircle2, Plus } from "lucide-react";
+import { Activity, AlertTriangle, BrainCircuit, CheckCircle2, Plus, TrendingUp } from "lucide-react";
 import { NavShell } from "@/components/NavShell";
 import { PomodoroTimer } from "@/components/PomodoroTimer";
-import { apiFetch, formatHours, PlanSummary, progressPercent, remainingPercent, Subject } from "@/lib/api";
+import {
+  apiFetch,
+  formatHours,
+  formatPercent,
+  PlanSummary,
+  progressPercent,
+  RegressionAnalysis,
+  remainingPercent,
+  Subject,
+} from "@/lib/api";
 
 export default function DashboardPage() {
   const [summary, setSummary] = useState<PlanSummary | null>(null);
+  const [analysis, setAnalysis] = useState<RegressionAnalysis | null>(null);
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [error, setError] = useState("");
 
   async function load() {
     try {
-      const [today, subjectList] = await Promise.all([
+      const [today, subjectList, regression] = await Promise.all([
         apiFetch<PlanSummary>("/plans/today"),
         apiFetch<Subject[]>("/subjects"),
+        apiFetch<RegressionAnalysis>("/analytics/study-regression"),
       ]);
       setSummary(today);
       setSubjects(subjectList);
+      setAnalysis(regression);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load dashboard");
     }
@@ -49,8 +61,8 @@ export default function DashboardPage() {
                 <strong>{formatHours(summary.daily_available_hours)}</strong>
               </div>
               <div className="card metric">
-                <span className="muted">状態</span>
-                <strong>{summary.over_capacity ? "要調整" : "順調"}</strong>
+                <span className="muted">今日の実績</span>
+                <strong>{formatHours(analysis?.today_actual_hours ?? 0)}</strong>
               </div>
             </div>
           ) : null}
@@ -61,6 +73,63 @@ export default function DashboardPage() {
                 <p>締切が近い科目の必要時間が多くなっています。学習可能時間か科目条件を見直せます。</p>
               </div>
               <AlertTriangle color="#a15c06" />
+            </div>
+          ) : null}
+          {analysis ? (
+            <div className="panel ai-panel stack">
+              <div className="row">
+                <div>
+                  <p className="eyebrow">Regression AI</p>
+                  <h2>達成率の回帰分析</h2>
+                </div>
+                <BrainCircuit color="#29437a" />
+              </div>
+              <div className="grid grid-3">
+                <div className="analysis-metric">
+                  <span className="muted">AI予測達成率</span>
+                  <strong>{formatPercent(analysis.predicted_achievement_rate)}</strong>
+                </div>
+                <div className="analysis-metric">
+                  <span className="muted">今日の達成率</span>
+                  <strong>{formatPercent(analysis.today_achievement_rate)}</strong>
+                </div>
+                <div className="analysis-metric">
+                  <span className="muted">信頼度</span>
+                  <strong>{formatPercent(analysis.confidence)}</strong>
+                </div>
+              </div>
+              <div className="insight-band">
+                <span className="ai-chip">
+                  <Activity size={14} />
+                  {analysis.trend_label}
+                </span>
+                <span>
+                  <TrendingUp size={14} />
+                  {analysis.slope_per_day >= 0 ? "+" : ""}
+                  {analysis.slope_per_day}pt / day
+                </span>
+                <span>明日の予測 {formatPercent(analysis.predicted_next_achievement_rate)}</span>
+              </div>
+              <div className="daily-history">
+                <div className="daily-row daily-head">
+                  <span>日付</span>
+                  <span>予定</span>
+                  <span>実績</span>
+                  <span>達成率</span>
+                </div>
+                {analysis.daily_summaries
+                  .slice()
+                  .reverse()
+                  .slice(0, 7)
+                  .map((daily) => (
+                    <div className="daily-row" key={daily.log_date}>
+                      <span>{daily.log_date}</span>
+                      <span>{formatHours(daily.planned_hours)}</span>
+                      <span>{formatHours(daily.actual_hours)}</span>
+                      <strong>{formatPercent(daily.achievement_rate)}</strong>
+                    </div>
+                  ))}
+              </div>
             </div>
           ) : null}
           <div className="panel stack">

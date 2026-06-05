@@ -233,6 +233,80 @@ p {
   font-size: 28px;
 }
 
+.ai-panel {
+  background: #fbfcff;
+  border-color: #cfdbe9;
+}
+
+.analysis-metric {
+  background: #fff;
+  border: 1px solid #dce5f0;
+  border-radius: 8px;
+  display: grid;
+  gap: 4px;
+  padding: 14px;
+}
+
+.analysis-metric strong {
+  color: #29437a;
+  font-size: 30px;
+}
+
+.insight-band {
+  align-items: center;
+  background: #eef4fb;
+  border: 1px solid #d7e3ef;
+  border-radius: 8px;
+  color: #2b465f;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 12px;
+}
+
+.insight-band span,
+.ai-chip {
+  align-items: center;
+  display: inline-flex;
+  gap: 6px;
+}
+
+.ai-chip {
+  background: #dde9f7;
+  border-radius: 999px;
+  color: #29437a;
+  font-size: 12px;
+  font-weight: 800;
+  padding: 5px 9px;
+}
+
+.daily-history {
+  border: 1px solid #dce5f0;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.daily-row {
+  align-items: center;
+  background: #fff;
+  border-top: 1px solid #edf2f7;
+  display: grid;
+  gap: 8px;
+  grid-template-columns: 1.15fr 1fr 1fr 0.8fr;
+  padding: 10px 12px;
+}
+
+.daily-row:first-child {
+  border-top: 0;
+}
+
+.daily-head {
+  background: #f1f6fb;
+  color: #52616d;
+  font-size: 13px;
+  font-weight: 800;
+}
+
 .badge {
   border-radius: 999px;
   display: inline-flex;
@@ -364,5 +438,9 @@ p {
 
   .time-edit {
     grid-template-columns: 1fr;
+  }
+
+  .daily-row {
+    grid-template-columns: 1fr 1fr;
   }
 }

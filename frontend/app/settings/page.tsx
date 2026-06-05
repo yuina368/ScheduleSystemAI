@@ -7,6 +7,7 @@ import { apiFetch, StudySetting } from "@/lib/api";
 export default function SettingsPage() {
   const [weekdayHours, setWeekdayHours] = useState("2");
   const [weekendHours, setWeekendHours] = useState("2");
+  const [webhookUrl, setWebhookUrl] = useState("");
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
 
@@ -16,6 +17,7 @@ export default function SettingsPage() {
         const setting = await apiFetch<StudySetting>("/settings/study-time");
         setWeekdayHours(String(setting.weekday_available_hours ?? setting.daily_available_hours));
         setWeekendHours(String(setting.weekend_available_hours ?? setting.daily_available_hours));
+        setWebhookUrl(setting.morning_webhook_url ?? "");
       } catch (err) {
         setError(err instanceof Error ? err.message : "Failed to load settings");
       }
@@ -33,6 +35,7 @@ export default function SettingsPage() {
         body: {
           weekday_available_hours: Number(weekdayHours),
           weekend_available_hours: Number(weekendHours),
+          morning_webhook_url: webhookUrl.trim() || null,
         },
       });
       setMessage("保存しました。今日以降の計画を再計算しました。");
@@ -47,7 +50,7 @@ export default function SettingsPage() {
         <div>
           <p className="eyebrow">Study Time</p>
           <h1>1日の学習可能時間</h1>
-          <p>この時間を基準に、今日の予定が多すぎるかを判定します。</p>
+          <p>平日・土日の予定配分と、毎朝の学習ブリーフィングを設定します。</p>
         </div>
         <div className="grid grid-2">
           <div className="field">
@@ -76,6 +79,16 @@ export default function SettingsPage() {
               required
             />
           </div>
+        </div>
+        <div className="field">
+          <label htmlFor="webhook-url">毎朝通知 Webhook URL</label>
+          <input
+            id="webhook-url"
+            type="url"
+            placeholder="https://example.com/webhook"
+            value={webhookUrl}
+            onChange={(event) => setWebhookUrl(event.target.value)}
+          />
         </div>
         {error ? <p className="error">{error}</p> : null}
         {message ? <p className="success">{message}</p> : null}

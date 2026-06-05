@@ -42,6 +42,7 @@ def upsert_study_time(
     current_daily = setting.daily_available_hours if setting else 2.0
     current_weekday = setting.weekday_available_hours if setting and setting.weekday_available_hours is not None else current_daily
     current_weekend = setting.weekend_available_hours if setting and setting.weekend_available_hours is not None else current_daily
+    current_webhook_url = setting.morning_webhook_url if setting else None
     weekday_hours = (
         payload.weekday_available_hours
         if payload.weekday_available_hours is not None
@@ -56,18 +57,25 @@ def upsert_study_time(
         if payload.daily_available_hours is not None
         else current_weekend
     )
+    webhook_url = (
+        payload.morning_webhook_url
+        if "morning_webhook_url" in payload.model_fields_set
+        else current_webhook_url
+    )
     if not setting:
         setting = StudySetting(
             user_id=current_user.id,
             daily_available_hours=weekday_hours,
             weekday_available_hours=weekday_hours,
             weekend_available_hours=weekend_hours,
+            morning_webhook_url=webhook_url,
         )
         db.add(setting)
     else:
         setting.daily_available_hours = weekday_hours
         setting.weekday_available_hours = weekday_hours
         setting.weekend_available_hours = weekend_hours
+        setting.morning_webhook_url = webhook_url
 
     regenerate_plans(db, current_user.id)
     db.commit()

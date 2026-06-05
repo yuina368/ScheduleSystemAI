@@ -4,7 +4,8 @@ from sqlalchemy import create_engine, select
 from sqlalchemy.orm import Session
 
 from app.db.session import Base
-from app.models import StudyPlan, StudySetting, Subject, User
+from app.models import StudyLog, StudyPlan, StudySetting, Subject, User
+from app.services.analytics import get_study_regression
 from app.services.planner import regenerate_plans
 
 
@@ -57,3 +58,54 @@ def test_regenerate_plans_weights_weekday_and_weekend_hours() -> None:
         date(2026, 6, 7),
     ]
     assert [plan.planned_hours for plan in plans] == [1.6, 3.2, 3.2]
+
+
+def test_study_regression_uses_daily_actual_totals() -> None:
+    engine = create_engine("sqlite:///:memory:")
+    Base.metadata.create_all(bind=engine)
+
+    with Session(engine) as db:
+        user = User(email="analytics@example.com", hashed_password="hashed")
+        db.add(user)
+        db.flush()
+        subject = Subject(
+            user_id=user.id,
+            name="Exam",
+            deadline_date=date(2026, 6, 10),
+            required_hours=10,
+            completed_hours=0,
+            status="active",
+        )
+        db.add(subject)
+        db.flush()
+
+        for offset, actual_hours in enumerate([1.0, 1.5, 2.0]):
+            log_date = date(2026, 6, 1) + timedelta(days=offset)
+            db.add(
+                StudyPlan(
+                    user_id=user.id,
+                    subject_id=subject.id,
+                    plan_date=log_date,
+                    planned_hours=2.0,
+                    status="planned",
+                )
+            )
+            db.add(
+                StudyLog(
+                    user_id=user.id,
+                    subject_id=subject.id,
+                    log_date=log_date,
+                    planned_hours=2.0,
+                    actual_hours=actual_hours,
+                    did_study=True,
+                )
+            )
+        db.flush()
+
+        analysis = get_study_regression(db, user.id, target_date=date(2026, 6, 3), days=3)
+
+    assert analysis["sample_size"] == 3
+    assert analysis["today_actual_hours"] == 2.0
+    assert analysis["today_achievement_rate"] == 100.0
+    assert analysis["slope_per_day"] > 0
+    assert analysis["trend_label"] == "上昇傾向"

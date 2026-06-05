@@ -7,7 +7,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from app import models  # noqa: F401
 from app.core.config import get_settings
 from app.db.session import Base, engine
-from app.routers import auth, plans, settings as settings_router, study_logs, subjects
+from app.routers import analytics, auth, cron, plans, settings as settings_router, study_logs, subjects
 
 app_settings = get_settings()
 
@@ -30,6 +30,8 @@ app.include_router(settings_router.router)
 app.include_router(subjects.router)
 app.include_router(plans.router)
 app.include_router(study_logs.router)
+app.include_router(analytics.router)
+app.include_router(cron.router)
 
 
 @app.on_event("startup")
@@ -54,6 +56,8 @@ def ensure_study_settings_columns() -> None:
             connection.execute(text("ALTER TABLE study_settings ADD COLUMN weekday_available_hours FLOAT"))
         if "weekend_available_hours" not in existing_columns:
             connection.execute(text("ALTER TABLE study_settings ADD COLUMN weekend_available_hours FLOAT"))
+        if "morning_webhook_url" not in existing_columns:
+            connection.execute(text("ALTER TABLE study_settings ADD COLUMN morning_webhook_url VARCHAR(2048)"))
         connection.execute(
             text(
                 """

@@ -54,12 +54,16 @@ ScheduleSystemAI は、こうした負担を減らし、ユーザーができる
 - 必要学習時間の編集
 - 残り学習割合の表示
 - 平日・土日の学習可能時間の設定
+- 毎朝通知用 Webhook URL の保存
 - 今日の学習計画の自動生成
 - 学習実績の分単位入力
+- 日別の予定時間・実績時間・達成率の保存と表示
+- 日別達成率を使った回帰分析による AI 風の達成率予測
 - 実績入力後の自動再計算
 - 15 分学習 / 5 分休憩のポモドーロタイマー
 - 1 日の学習時間から必要な 15 分タイマー回数を表示
 - 今日の予定が学習可能時間を超えた場合の警告
+- Vercel Cron による毎朝の学習ブリーフィング Webhook 送信
 
 ## 想定する利用シーン
 
@@ -98,6 +102,9 @@ flowchart TD
   H --> I["完了時間を更新"]
   I --> J["翌日以降の計画を再計算"]
   J --> G
+  I --> K["日別の予定・実績・達成率を集計"]
+  K --> L["回帰分析で達成率を予測"]
+  L --> G
 ```
 
 ### データモデル
@@ -122,6 +129,7 @@ erDiagram
     float daily_available_hours
     float weekday_available_hours
     float weekend_available_hours
+    string morning_webhook_url
   }
 
   SUBJECTS {
@@ -164,18 +172,20 @@ erDiagram
 | `daily_available_hours` | 既存データとの互換用の 1 日学習可能時間 |
 | `weekday_available_hours` | 平日に確保できる学習時間 |
 | `weekend_available_hours` | 土日に確保できる学習時間 |
+| `morning_webhook_url` | 毎朝の学習ブリーフィング送信用 Webhook URL |
 
 既存データベース向けには `backend/alembic/versions/0002_weekend_study_settings.py` でカラムを追加し、既存の `daily_available_hours` から初期値を引き継ぎます。`CREATE_TABLES_ON_STARTUP=true` の環境では、起動時にも不足カラムを補完します。
+Webhook URL は `backend/alembic/versions/0003_morning_webhook_settings.py` で追加します。
 
 ### 画面設計
 
 | 画面 | 役割 |
 | --- | --- |
 | Signup / Login | ユーザー登録・ログイン |
-| Dashboard | 今日の予定、学習可能時間、残り割合、ポモドーロタイマーを表示 |
+| Dashboard | 今日の予定、今日の実績、AI 回帰分析、日別達成率、残り割合、ポモドーロタイマーを表示 |
 | Subjects | 科目一覧、必要時間編集、残り割合確認、科目削除 |
 | Add Subject | 新しい科目の登録 |
-| Settings | 平日・土日の学習可能時間を設定 |
+| Settings | 平日・土日の学習可能時間と Webhook URL を設定 |
 | Check-in | 今日の実績を分単位で入力 |
 
 ## 学習計画の計算式
@@ -191,6 +201,32 @@ planned_hours_for_day = remaining_hours * (available_hours_for_day / total_avail
 ```
 
 実績を入力すると `completed_hours` が更新され、残り時間・現在日付・平日/土日の学習可能時間から計画が再計算されます。
+
+## 達成率の回帰分析
+
+Check-in で入力された科目別実績は、日付ごとに合算されます。
+
+```text
+daily_planned_hours = その日の予定時間の合計
+daily_actual_hours = その日の実績時間の合計
+achievement_rate = daily_actual_hours / daily_planned_hours * 100
+```
+
+Dashboard では直近の日別達成率を単回帰分析し、今日・明日の達成率予測、1 日あたりの傾き、信頼度を表示します。LLM API は使わず、保存済みの学習ログから数式ベースで分析します。
+
+## 毎朝 Webhook 通知
+
+Settings で Webhook URL を保存すると、バックエンドの Vercel Cron が毎朝学習ブリーフィングを送信します。
+
+通知内容:
+
+- 今日の予定学習時間
+- 学習可能時間
+- 現在の達成度
+- AI 回帰予測達成率
+- 今日やる科目と予定時間
+
+Vercel Cron の時刻は UTC 基準です。`backend/vercel.json` では `0 22 * * *` を設定しており、日本時間の毎朝 7 時台に `/cron/morning-summary` を実行します。
 
 ## ポモドーロタイマー
 
@@ -304,6 +340,7 @@ ACCESS_TOKEN_EXPIRE_MINUTES=10080
 BACKEND_CORS_ORIGINS=http://localhost:3000
 CREATE_TABLES_ON_STARTUP=true
 APP_TIMEZONE=Asia/Tokyo
+CRON_SECRET=change-this-cron-secret
 ```
 
 ### Frontend
@@ -342,6 +379,9 @@ https://schedule-system-ai.vercel.app/
   - `BACKEND_CORS_ORIGINS=https://your-frontend.vercel.app`
   - `CREATE_TABLES_ON_STARTUP=true`
   - `APP_TIMEZONE=Asia/Tokyo`
+  - `CRON_SECRET`
+
+Backend の Vercel Project では `backend/vercel.json` により、毎朝通知用の Cron Job が登録されます。Vercel の `CRON_SECRET` は Cron 実行時に `Authorization: Bearer <CRON_SECRET>` として送られ、バックエンド側で検証します。
 
 Backend のデプロイ後、次の URL が応答すれば成功です。
 
@@ -364,7 +404,6 @@ https://your-backend.vercel.app/health
 
 - Gemini Flash などの LLM を使った学習計画の提案
 - 科目ごとの優先度設定
-- 過去の学習ログの可視化
 - 週単位・月単位の進捗レポート
 - ポモドーロ完了回数の保存
 - 試験別テンプレートの追加

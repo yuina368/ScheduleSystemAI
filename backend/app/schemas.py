@@ -1,6 +1,6 @@
 from datetime import date, datetime
 
-from pydantic import BaseModel, ConfigDict, EmailStr, Field
+from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
 
 
 class UserCreate(BaseModel):
@@ -31,6 +31,19 @@ class StudySettingUpsert(BaseModel):
     daily_available_hours: float | None = Field(default=None, gt=0, le=24)
     weekday_available_hours: float | None = Field(default=None, gt=0, le=24)
     weekend_available_hours: float | None = Field(default=None, gt=0, le=24)
+    morning_webhook_url: str | None = Field(default=None, max_length=2048)
+
+    @field_validator("morning_webhook_url")
+    @classmethod
+    def validate_webhook_url(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        normalized = value.strip()
+        if not normalized:
+            return None
+        if not normalized.startswith(("https://", "http://")):
+            raise ValueError("Webhook URL must start with http:// or https://")
+        return normalized
 
 
 class StudySettingRead(BaseModel):
@@ -39,6 +52,7 @@ class StudySettingRead(BaseModel):
     daily_available_hours: float
     weekday_available_hours: float
     weekend_available_hours: float
+    morning_webhook_url: str | None
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -113,3 +127,24 @@ class StudyLogRead(BaseModel):
     updated_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class DailyStudySummary(BaseModel):
+    log_date: date
+    planned_hours: float
+    actual_hours: float
+    achievement_rate: float
+
+
+class RegressionAnalysis(BaseModel):
+    generated_for: date
+    sample_size: int
+    today_actual_hours: float
+    today_achievement_rate: float
+    predicted_achievement_rate: float
+    predicted_next_achievement_rate: float
+    slope_per_day: float
+    intercept: float
+    confidence: float
+    trend_label: str
+    daily_summaries: list[DailyStudySummary]

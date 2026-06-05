@@ -26,6 +26,7 @@ class StudySetting(Base):
     daily_available_hours: Mapped[float] = mapped_column(Float, default=2.0)
     weekday_available_hours: Mapped[float | None] = mapped_column(Float, default=2.0, nullable=True)
     weekend_available_hours: Mapped[float | None] = mapped_column(Float, default=2.0, nullable=True)
+    morning_webhook_url: Mapped[str | None] = mapped_column(String(2048), nullable=True)
     created_at = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
 

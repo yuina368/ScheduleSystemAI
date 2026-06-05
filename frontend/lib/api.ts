@@ -16,6 +16,7 @@ export type StudySetting = {
   daily_available_hours: number;
   weekday_available_hours: number;
   weekend_available_hours: number;
+  morning_webhook_url: string | null;
 };
 
 export type Subject = {
@@ -46,6 +47,27 @@ export type PlanSummary = {
   total_planned_hours: number;
   over_capacity: boolean;
   plans: StudyPlan[];
+};
+
+export type DailyStudySummary = {
+  log_date: string;
+  planned_hours: number;
+  actual_hours: number;
+  achievement_rate: number;
+};
+
+export type RegressionAnalysis = {
+  generated_for: string;
+  sample_size: number;
+  today_actual_hours: number;
+  today_achievement_rate: number;
+  predicted_achievement_rate: number;
+  predicted_next_achievement_rate: number;
+  slope_per_day: number;
+  intercept: number;
+  confidence: number;
+  trend_label: string;
+  daily_summaries: DailyStudySummary[];
 };
 
 const API_BASE_URL = (process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000").replace(/\/+$/, "");
@@ -144,6 +166,10 @@ export function formatHours(value: number): string {
 
 export function hoursToMinutes(value: number): number {
   return Math.max(0, Math.round(value * 60));
+}
+
+export function formatPercent(value: number): string {
+  return `${Math.round(value)}%`;
 }
 
 export function progressPercent(subject: Subject): number {
