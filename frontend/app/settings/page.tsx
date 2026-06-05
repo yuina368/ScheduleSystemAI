@@ -8,6 +8,7 @@ export default function SettingsPage() {
   const [weekdayHours, setWeekdayHours] = useState("2");
   const [weekendHours, setWeekendHours] = useState("2");
   const [webhookUrl, setWebhookUrl] = useState("");
+  const [maxDailySubjects, setMaxDailySubjects] = useState("3");
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
 
@@ -18,6 +19,7 @@ export default function SettingsPage() {
         setWeekdayHours(String(setting.weekday_available_hours ?? setting.daily_available_hours));
         setWeekendHours(String(setting.weekend_available_hours ?? setting.daily_available_hours));
         setWebhookUrl(setting.morning_webhook_url ?? "");
+        setMaxDailySubjects(String(setting.max_daily_subjects ?? 3));
       } catch (err) {
         setError(err instanceof Error ? err.message : "Failed to load settings");
       }
@@ -36,6 +38,7 @@ export default function SettingsPage() {
           weekday_available_hours: Number(weekdayHours),
           weekend_available_hours: Number(weekendHours),
           morning_webhook_url: webhookUrl.trim() || null,
+          max_daily_subjects: Number(maxDailySubjects),
         },
       });
       setMessage("保存しました。今日以降の計画を再計算しました。");
@@ -79,6 +82,19 @@ export default function SettingsPage() {
               required
             />
           </div>
+        </div>
+        <div className="field">
+          <label htmlFor="max-daily-subjects">一日の最大科目数</label>
+          <input
+            id="max-daily-subjects"
+            type="number"
+            min="1"
+            max="12"
+            step="1"
+            value={maxDailySubjects}
+            onChange={(event) => setMaxDailySubjects(event.target.value)}
+            required
+          />
         </div>
         <div className="field">
           <label htmlFor="webhook-url">毎朝通知 Webhook URL</label>

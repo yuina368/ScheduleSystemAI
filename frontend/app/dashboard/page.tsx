@@ -61,8 +61,10 @@ export default function DashboardPage() {
                 <strong>{formatHours(summary.daily_available_hours)}</strong>
               </div>
               <div className="card metric">
-                <span className="muted">今日の実績</span>
-                <strong>{formatHours(analysis?.today_actual_hours ?? 0)}</strong>
+                <span className="muted">今日の科目数</span>
+                <strong>
+                  {summary.plans.length}/{summary.max_daily_subjects}
+                </strong>
               </div>
             </div>
           ) : null}
@@ -149,6 +151,18 @@ export default function DashboardPage() {
                       <p>
                         締切 {plan.subject.deadline_date} / 予定 {formatHours(plan.planned_hours)}
                       </p>
+                      {plan.priority_reasons ? (
+                        <div className="reason-list">
+                          {plan.priority_reasons.split("、").map((reason) => (
+                            <span className="reason-chip" key={`${plan.id}-${reason}`}>
+                              {reason}
+                            </span>
+                          ))}
+                          {plan.priority_score ? (
+                            <span className="reason-chip score">score {Math.round(plan.priority_score)}</span>
+                          ) : null}
+                        </div>
+                      ) : null}
                     </div>
                     <span className="badge ok">Today</span>
                   </div>

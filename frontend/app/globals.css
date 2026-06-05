@@ -271,6 +271,29 @@ p {
   gap: 6px;
 }
 
+.reason-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.reason-chip {
+  background: #edf5f2;
+  border: 1px solid #d7e8e2;
+  border-radius: 999px;
+  color: #255c51;
+  font-size: 12px;
+  font-weight: 800;
+  padding: 5px 8px;
+}
+
+.reason-chip.score {
+  background: #eef4fb;
+  border-color: #d7e3ef;
+  color: #29437a;
+}
+
 .ai-chip {
   background: #dde9f7;
   border-radius: 999px;

@@ -26,6 +26,7 @@ def signup(payload: UserCreate, db: Session = Depends(get_db)) -> AuthResponse:
             daily_available_hours=2.0,
             weekday_available_hours=2.0,
             weekend_available_hours=2.0,
+            max_daily_subjects=3,
         )
     )
     db.commit()

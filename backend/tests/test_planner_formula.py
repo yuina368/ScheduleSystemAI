@@ -60,6 +60,64 @@ def test_regenerate_plans_weights_weekday_and_weekend_hours() -> None:
     assert [plan.planned_hours for plan in plans] == [1.6, 3.2, 3.2]
 
 
+def test_regenerate_plans_limits_daily_subjects_by_priority() -> None:
+    engine = create_engine("sqlite:///:memory:")
+    Base.metadata.create_all(bind=engine)
+
+    today = date(2026, 6, 5)
+    with Session(engine) as db:
+        user = User(email="priority@example.com", hashed_password="hashed")
+        db.add(user)
+        db.flush()
+        db.add(
+            StudySetting(
+                user_id=user.id,
+                daily_available_hours=4,
+                weekday_available_hours=4,
+                weekend_available_hours=4,
+                max_daily_subjects=2,
+            )
+        )
+        subjects = [
+            Subject(
+                user_id=user.id,
+                name="Urgent Exam",
+                deadline_date=today + timedelta(days=1),
+                required_hours=8,
+                completed_hours=0,
+                status="active",
+            ),
+            Subject(
+                user_id=user.id,
+                name="Medium Exam",
+                deadline_date=today + timedelta(days=3),
+                required_hours=4,
+                completed_hours=0,
+                status="active",
+            ),
+            Subject(
+                user_id=user.id,
+                name="Far Exam",
+                deadline_date=today + timedelta(days=30),
+                required_hours=10,
+                completed_hours=0,
+                status="active",
+            ),
+        ]
+        db.add_all(subjects)
+        db.flush()
+
+        regenerate_plans(db, user.id, start_date=today)
+        today_plans = list(
+            db.scalars(select(StudyPlan).where(StudyPlan.plan_date == today).order_by(StudyPlan.priority_score.desc()))
+        )
+
+    assert len(today_plans) == 2
+    assert today_plans[0].subject_id == subjects[0].id
+    assert all(plan.priority_score is not None for plan in today_plans)
+    assert all(plan.priority_reasons for plan in today_plans)
+
+
 def test_study_regression_uses_daily_actual_totals() -> None:
     engine = create_engine("sqlite:///:memory:")
     Base.metadata.create_all(bind=engine)

@@ -58,6 +58,8 @@ def ensure_study_settings_columns() -> None:
             connection.execute(text("ALTER TABLE study_settings ADD COLUMN weekend_available_hours FLOAT"))
         if "morning_webhook_url" not in existing_columns:
             connection.execute(text("ALTER TABLE study_settings ADD COLUMN morning_webhook_url VARCHAR(2048)"))
+        if "max_daily_subjects" not in existing_columns:
+            connection.execute(text("ALTER TABLE study_settings ADD COLUMN max_daily_subjects INTEGER"))
         connection.execute(
             text(
                 """
@@ -76,6 +78,23 @@ def ensure_study_settings_columns() -> None:
                 """
             )
         )
+        connection.execute(
+            text(
+                """
+                UPDATE study_settings
+                SET max_daily_subjects = 3
+                WHERE max_daily_subjects IS NULL
+                """
+            )
+        )
+
+    if inspector.has_table("study_plans"):
+        existing_plan_columns = {column["name"] for column in inspector.get_columns("study_plans")}
+        with engine.begin() as connection:
+            if "priority_score" not in existing_plan_columns:
+                connection.execute(text("ALTER TABLE study_plans ADD COLUMN priority_score FLOAT"))
+            if "priority_reasons" not in existing_plan_columns:
+                connection.execute(text("ALTER TABLE study_plans ADD COLUMN priority_reasons VARCHAR(500)"))
 
 
 def database_status() -> dict[str, str]:

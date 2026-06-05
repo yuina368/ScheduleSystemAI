@@ -27,6 +27,7 @@ class StudySetting(Base):
     weekday_available_hours: Mapped[float | None] = mapped_column(Float, default=2.0, nullable=True)
     weekend_available_hours: Mapped[float | None] = mapped_column(Float, default=2.0, nullable=True)
     morning_webhook_url: Mapped[str | None] = mapped_column(String(2048), nullable=True)
+    max_daily_subjects: Mapped[int | None] = mapped_column(Integer, default=3, nullable=True)
     created_at = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
 
@@ -60,6 +61,8 @@ class StudyPlan(Base):
     subject_id: Mapped[int] = mapped_column(ForeignKey("subjects.id", ondelete="CASCADE"))
     plan_date: Mapped[date] = mapped_column(Date, index=True)
     planned_hours: Mapped[float] = mapped_column(Float)
+    priority_score: Mapped[float | None] = mapped_column(Float, nullable=True)
+    priority_reasons: Mapped[str | None] = mapped_column(String(500), nullable=True)
     status: Mapped[str] = mapped_column(String(24), default="planned")
     created_at = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())

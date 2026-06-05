@@ -17,6 +17,7 @@ export type StudySetting = {
   weekday_available_hours: number;
   weekend_available_hours: number;
   morning_webhook_url: string | null;
+  max_daily_subjects: number;
 };
 
 export type Subject = {
@@ -37,6 +38,8 @@ export type StudyPlan = {
   subject_id: number;
   plan_date: string;
   planned_hours: number;
+  priority_score: number | null;
+  priority_reasons: string | null;
   status: string;
   subject: Subject;
 };
@@ -44,6 +47,7 @@ export type StudyPlan = {
 export type PlanSummary = {
   plan_date: string;
   daily_available_hours: number;
+  max_daily_subjects: number;
   total_planned_hours: number;
   over_capacity: boolean;
   plans: StudyPlan[];

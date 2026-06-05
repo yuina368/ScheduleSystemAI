@@ -32,6 +32,7 @@ class StudySettingUpsert(BaseModel):
     weekday_available_hours: float | None = Field(default=None, gt=0, le=24)
     weekend_available_hours: float | None = Field(default=None, gt=0, le=24)
     morning_webhook_url: str | None = Field(default=None, max_length=2048)
+    max_daily_subjects: int | None = Field(default=None, ge=1, le=12)
 
     @field_validator("morning_webhook_url")
     @classmethod
@@ -53,6 +54,7 @@ class StudySettingRead(BaseModel):
     weekday_available_hours: float
     weekend_available_hours: float
     morning_webhook_url: str | None
+    max_daily_subjects: int
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -92,6 +94,8 @@ class StudyPlanRead(BaseModel):
     subject_id: int
     plan_date: date
     planned_hours: float
+    priority_score: float | None = None
+    priority_reasons: str | None = None
     status: str
     subject: SubjectRead
 
@@ -101,6 +105,7 @@ class StudyPlanRead(BaseModel):
 class PlanSummary(BaseModel):
     plan_date: date
     daily_available_hours: float
+    max_daily_subjects: int
     total_planned_hours: float
     over_capacity: bool
     plans: list[StudyPlanRead]
