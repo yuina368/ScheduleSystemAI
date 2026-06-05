@@ -60,6 +60,19 @@ export type DailyStudySummary = {
   achievement_rate: number;
 };
 
+export type SubjectCompletionForecast = {
+  subject_id: number;
+  subject_name: string;
+  deadline_date: string;
+  remaining_hours: number;
+  days_left: number;
+  required_daily_hours: number;
+  projected_study_hours: number;
+  coverage_ratio: number;
+  final_completion_probability: number;
+  risk_label: string;
+};
+
 export type RegressionAnalysis = {
   generated_for: string;
   sample_size: number;
@@ -71,6 +84,13 @@ export type RegressionAnalysis = {
   intercept: number;
   confidence: number;
   trend_label: string;
+  final_completion_probability: number;
+  projected_completion_rate: number;
+  recent_execution_rate: number;
+  total_remaining_hours: number;
+  projected_study_hours: number;
+  final_status_label: string;
+  subject_forecasts: SubjectCompletionForecast[];
   daily_summaries: DailyStudySummary[];
 };
 

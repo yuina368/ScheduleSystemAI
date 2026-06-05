@@ -36,9 +36,10 @@ def build_morning_payload(db: Session, user_id: int, target_date: date) -> dict:
             f"ScheduleSystemAI 朝の学習ブリーフィング ({target_date.isoformat()})",
             f"今日の予定: {format_hours(plan_summary['total_planned_hours'])}",
             f"学習可能時間: {format_hours(plan_summary['daily_available_hours'])}",
-            f"現在の達成度: {analysis['today_achievement_rate']}%",
-            f"AI回帰予測: {analysis['predicted_achievement_rate']}%",
-            f"傾向: {analysis['trend_label']}",
+            f"最終達成確率: {analysis['final_completion_probability']}%",
+            f"残り必要時間: {format_hours(analysis['total_remaining_hours'])}",
+            f"予測可能学習時間: {format_hours(analysis['projected_study_hours'])}",
+            f"判定: {analysis['final_status_label']}",
             "今日の科目:",
             *plan_lines,
         ]
@@ -51,9 +52,10 @@ def build_morning_payload(db: Session, user_id: int, target_date: date) -> dict:
             "date": target_date.isoformat(),
             "planned_hours": plan_summary["total_planned_hours"],
             "available_hours": plan_summary["daily_available_hours"],
-            "achievement_rate": analysis["today_achievement_rate"],
-            "predicted_achievement_rate": analysis["predicted_achievement_rate"],
-            "trend_label": analysis["trend_label"],
+            "final_completion_probability": analysis["final_completion_probability"],
+            "total_remaining_hours": analysis["total_remaining_hours"],
+            "projected_study_hours": analysis["projected_study_hours"],
+            "final_status_label": analysis["final_status_label"],
             "plans": [
                 {
                     "subject": plan.subject.name,

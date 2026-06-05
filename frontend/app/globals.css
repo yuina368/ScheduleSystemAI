@@ -323,7 +323,8 @@ p {
   border-top: 0;
 }
 
-.daily-head {
+.daily-head,
+.forecast-head {
   background: #f1f6fb;
   color: #52616d;
   font-size: 13px;

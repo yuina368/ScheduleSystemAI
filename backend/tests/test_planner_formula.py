@@ -217,4 +217,45 @@ def test_study_regression_uses_daily_actual_totals() -> None:
     assert analysis["today_actual_hours"] == 2.0
     assert analysis["today_achievement_rate"] == 100.0
     assert analysis["slope_per_day"] > 0
-    assert analysis["trend_label"] == "上昇傾向"
+    assert analysis["final_completion_probability"] > 50
+    assert analysis["total_remaining_hours"] == 10
+    assert analysis["subject_forecasts"][0]["subject_name"] == "Exam"
+    assert analysis["trend_label"] in {"達成圏内", "要観察", "要加速", "危険域"}
+
+
+def test_final_completion_probability_uses_shared_capacity() -> None:
+    engine = create_engine("sqlite:///:memory:")
+    Base.metadata.create_all(bind=engine)
+
+    today = date(2026, 6, 1)
+    with Session(engine) as db:
+        user = User(email="shared-capacity@example.com", hashed_password="hashed")
+        db.add(user)
+        db.flush()
+        db.add(
+            StudySetting(
+                user_id=user.id,
+                daily_available_hours=1,
+                weekday_available_hours=1,
+                weekend_available_hours=1,
+            )
+        )
+        for name in ["Exam A", "Exam B"]:
+            db.add(
+                Subject(
+                    user_id=user.id,
+                    name=name,
+                    deadline_date=today + timedelta(days=1),
+                    required_hours=2,
+                    completed_hours=0,
+                    status="active",
+                )
+            )
+        db.flush()
+
+        analysis = get_study_regression(db, user.id, target_date=today, days=3)
+
+    assert analysis["total_remaining_hours"] == 4
+    assert analysis["projected_study_hours"] == 1.3
+    assert [forecast["projected_study_hours"] for forecast in analysis["subject_forecasts"]] == [1.3, 0.0]
+    assert analysis["final_completion_probability"] < 5

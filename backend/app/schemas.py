@@ -141,6 +141,19 @@ class DailyStudySummary(BaseModel):
     achievement_rate: float
 
 
+class SubjectCompletionForecast(BaseModel):
+    subject_id: int
+    subject_name: str
+    deadline_date: date
+    remaining_hours: float
+    days_left: int
+    required_daily_hours: float
+    projected_study_hours: float
+    coverage_ratio: float
+    final_completion_probability: float
+    risk_label: str
+
+
 class RegressionAnalysis(BaseModel):
     generated_for: date
     sample_size: int
@@ -152,4 +165,11 @@ class RegressionAnalysis(BaseModel):
     intercept: float
     confidence: float
     trend_label: str
+    final_completion_probability: float
+    projected_completion_rate: float
+    recent_execution_rate: float
+    total_remaining_hours: float
+    projected_study_hours: float
+    final_status_label: str
+    subject_forecasts: list[SubjectCompletionForecast]
     daily_summaries: list[DailyStudySummary]

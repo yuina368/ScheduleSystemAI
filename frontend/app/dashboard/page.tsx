@@ -81,19 +81,19 @@ export default function DashboardPage() {
             <div className="panel ai-panel stack">
               <div className="row">
                 <div>
-                  <p className="eyebrow">Regression AI</p>
-                  <h2>達成率の回帰分析</h2>
+                  <p className="eyebrow">Completion AI</p>
+                  <h2>最終達成確率</h2>
                 </div>
                 <BrainCircuit color="#29437a" />
               </div>
               <div className="grid grid-3">
                 <div className="analysis-metric">
-                  <span className="muted">AI予測達成率</span>
-                  <strong>{formatPercent(analysis.predicted_achievement_rate)}</strong>
+                  <span className="muted">最終達成確率</span>
+                  <strong>{formatPercent(analysis.final_completion_probability)}</strong>
                 </div>
                 <div className="analysis-metric">
-                  <span className="muted">今日の達成率</span>
-                  <strong>{formatPercent(analysis.today_achievement_rate)}</strong>
+                  <span className="muted">残り必要時間</span>
+                  <strong>{formatHours(analysis.total_remaining_hours)}</strong>
                 </div>
                 <div className="analysis-metric">
                   <span className="muted">信頼度</span>
@@ -103,14 +103,30 @@ export default function DashboardPage() {
               <div className="insight-band">
                 <span className="ai-chip">
                   <Activity size={14} />
-                  {analysis.trend_label}
+                  {analysis.final_status_label}
                 </span>
                 <span>
                   <TrendingUp size={14} />
-                  {analysis.slope_per_day >= 0 ? "+" : ""}
-                  {analysis.slope_per_day}pt / day
+                  直近実行率 {formatPercent(analysis.recent_execution_rate)}
                 </span>
-                <span>明日の予測 {formatPercent(analysis.predicted_next_achievement_rate)}</span>
+                <span>予測可能学習 {formatHours(analysis.projected_study_hours)}</span>
+                <span>予測完了率 {formatPercent(analysis.projected_completion_rate)}</span>
+              </div>
+              <div className="daily-history">
+                <div className="daily-row forecast-head">
+                  <span>科目</span>
+                  <span>締切</span>
+                  <span>残り</span>
+                  <span>確率</span>
+                </div>
+                {analysis.subject_forecasts.slice(0, 5).map((forecast) => (
+                  <div className="daily-row" key={forecast.subject_id}>
+                    <span>{forecast.subject_name}</span>
+                    <span>{forecast.deadline_date}</span>
+                    <span>{formatHours(forecast.remaining_hours)}</span>
+                    <strong>{formatPercent(forecast.final_completion_probability)}</strong>
+                  </div>
+                ))}
               </div>
               <div className="daily-history">
                 <div className="daily-row daily-head">
