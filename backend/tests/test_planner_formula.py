@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 
 from app.db.session import Base
 from app.models import StudyLog, StudyPlan, StudySetting, Subject, User
-from app.services.analytics import get_study_regression
+from app.services.analytics import final_label, get_study_regression
 from app.services.planner import get_refreshed_plan_summary, regenerate_plans
 
 
@@ -19,6 +19,13 @@ def test_formula_expected_daily_hours() -> None:
     remaining_days = (deadline - today).days + 1
 
     assert remaining_hours / remaining_days == 2
+
+
+def test_final_completion_labels() -> None:
+    assert final_label(33) == "要再計画"
+    assert final_label(34) == "調整圏"
+    assert final_label(67) == "調整圏"
+    assert final_label(68) == "継続圏"
 
 
 def test_regenerate_plans_weights_weekday_and_weekend_hours() -> None:
@@ -220,7 +227,7 @@ def test_study_regression_uses_daily_actual_totals() -> None:
     assert analysis["final_completion_probability"] > 50
     assert analysis["total_remaining_hours"] == 10
     assert analysis["subject_forecasts"][0]["subject_name"] == "Exam"
-    assert analysis["trend_label"] in {"達成圏内", "要観察", "要加速", "危険域"}
+    assert analysis["trend_label"] in {"要再計画", "調整圏", "継続圏"}
 
 
 def test_final_completion_probability_uses_shared_capacity() -> None:

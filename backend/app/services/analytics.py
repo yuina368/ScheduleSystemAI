@@ -113,13 +113,11 @@ def probability_from_coverage(coverage_ratio: float, confidence: float) -> float
 
 
 def final_label(probability: float) -> str:
-    if probability >= 80:
-        return "達成圏内"
-    if probability >= 60:
-        return "要観察"
-    if probability >= 40:
-        return "要加速"
-    return "危険域"
+    if probability >= 68:
+        return "継続圏"
+    if probability >= 34:
+        return "調整圏"
+    return "要再計画"
 
 
 def get_subject_completion_forecasts(
