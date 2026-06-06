@@ -186,6 +186,11 @@ p {
   background: var(--primary-dark);
 }
 
+.button:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
 .button.secondary {
   background: var(--surface-muted);
   border-color: var(--line);
@@ -382,6 +387,10 @@ p {
   display: grid;
   gap: 10px;
   grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.settings-actions {
+  justify-content: flex-start;
 }
 
 .progress {

@@ -11,6 +11,7 @@ export default function SettingsPage() {
   const [maxDailySubjects, setMaxDailySubjects] = useState("3");
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
+  const [testingWebhook, setTestingWebhook] = useState(false);
 
   useEffect(() => {
     async function load() {
@@ -44,6 +45,22 @@ export default function SettingsPage() {
       setMessage("保存しました。今日以降の計画を再計算しました。");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to save settings");
+    }
+  }
+
+  async function sendTestWebhook() {
+    setError("");
+    setMessage("");
+    setTestingWebhook(true);
+    try {
+      const result = await apiFetch<{ ok: boolean; status_code: number }>("/settings/morning-webhook/test", {
+        method: "POST",
+      });
+      setMessage(`テスト通知を送信しました。Webhook HTTP ${result.status_code}`);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to send test webhook");
+    } finally {
+      setTestingWebhook(false);
     }
   }
 
@@ -106,11 +123,21 @@ export default function SettingsPage() {
             onChange={(event) => setWebhookUrl(event.target.value)}
           />
         </div>
+        <div className="row settings-actions">
+          <button className="button" type="submit">
+            保存する
+          </button>
+          <button
+            className="button secondary"
+            disabled={!webhookUrl.trim() || testingWebhook}
+            type="button"
+            onClick={sendTestWebhook}
+          >
+            {testingWebhook ? "送信中..." : "保存済みURLへテスト通知"}
+          </button>
+        </div>
         {error ? <p className="error">{error}</p> : null}
         {message ? <p className="success">{message}</p> : null}
-        <button className="button" type="submit">
-          保存する
-        </button>
       </form>
     </NavShell>
   );

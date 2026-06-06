@@ -1,12 +1,15 @@
-from fastapi import APIRouter, Depends
+import httpx
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.core.dates import app_today
 from app.db.session import get_db
 from app.deps import get_current_user
 from app.models import StudySetting, User
 from app.schemas import StudySettingRead, StudySettingUpsert
 from app.services.planner import regenerate_plans
+from app.services.webhooks import build_morning_payload
 
 router = APIRouter(prefix="/settings", tags=["settings"])
 
@@ -91,3 +94,33 @@ def upsert_study_time(
     db.commit()
     db.refresh(setting)
     return setting
+
+
+@router.post("/morning-webhook/test")
+def test_morning_webhook(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)) -> dict:
+    setting = db.scalar(select(StudySetting).where(StudySetting.user_id == current_user.id))
+    if not setting or not setting.morning_webhook_url:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Webhook URL is not configured",
+        )
+
+    today = app_today()
+    regenerate_plans(db, current_user.id, today)
+    db.commit()
+    payload = build_morning_payload(db, current_user.id, today)
+    try:
+        response = httpx.post(setting.morning_webhook_url, json=payload, timeout=10)
+    except httpx.HTTPError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail=f"Webhook request failed: {exc}",
+        ) from exc
+
+    if not response.is_success:
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail=f"Webhook returned HTTP {response.status_code}",
+        )
+
+    return {"ok": True, "status_code": response.status_code}
